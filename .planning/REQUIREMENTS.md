@@ -117,11 +117,63 @@
 
 ## Traceability
 
-*To be populated by the roadmapper — each REQ-ID maps to exactly one phase.*
+Each REQ-ID maps to exactly one phase. Coverage: 54 / 54.
 
 | REQ-ID | Phase |
 |--------|-------|
-| (pending) | (pending) |
+| INFRA-01 | Phase 1: Foundations |
+| INFRA-02 | Phase 1: Foundations |
+| INFRA-03 | Phase 1: Foundations |
+| INFRA-04 | Phase 1: Foundations |
+| INFRA-05 | Phase 1: Foundations |
+| INFRA-06 | Phase 1: Foundations |
+| INFRA-07 | Phase 1: Foundations |
+| INFRA-08 | Phase 1: Foundations |
+| INFRA-09 | Phase 1: Foundations |
+| INFRA-10 | Phase 1: Foundations |
+| STORE-01 | Phase 2: Storage Layer |
+| STORE-02 | Phase 2: Storage Layer |
+| STORE-03 | Phase 2: Storage Layer |
+| STORE-04 | Phase 2: Storage Layer |
+| STORE-05 | Phase 2: Storage Layer |
+| STORE-06 | Phase 2: Storage Layer |
+| GATE-01 | Phase 3: Validation Gate |
+| GATE-02 | Phase 3: Validation Gate |
+| GATE-03 | Phase 3: Validation Gate |
+| GATE-04 | Phase 3: Validation Gate |
+| INGEST-01 | Phase 4: Ingestion |
+| INGEST-02 | Phase 4: Ingestion |
+| INGEST-03 | Phase 4: Ingestion |
+| INGEST-04 | Phase 4: Ingestion |
+| INGEST-05 | Phase 4: Ingestion |
+| INGEST-06 | Phase 4: Ingestion |
+| INGEST-07 | Phase 4: Ingestion |
+| CLUSTER-01 | Phase 5: Cluster + Rank |
+| CLUSTER-02 | Phase 5: Cluster + Rank |
+| CLUSTER-03 | Phase 5: Cluster + Rank |
+| CLUSTER-04 | Phase 5: Cluster + Rank |
+| CLUSTER-05 | Phase 5: Cluster + Rank |
+| CLUSTER-06 | Phase 5: Cluster + Rank |
+| CLUSTER-07 | Phase 5: Cluster + Rank |
+| SYNTH-01 | Phase 6: Synthesis |
+| SYNTH-02 | Phase 6: Synthesis |
+| SYNTH-03 | Phase 6: Synthesis |
+| SYNTH-04 | Phase 6: Synthesis |
+| SYNTH-05 | Phase 6: Synthesis |
+| SYNTH-06 | Phase 6: Synthesis |
+| SYNTH-07 | Phase 6: Synthesis |
+| PUBLISH-01 | Phase 7: Publish |
+| PUBLISH-02 | Phase 7: Publish |
+| PUBLISH-03 | Phase 7: Publish |
+| PUBLISH-04 | Phase 7: Publish |
+| PUBLISH-05 | Phase 7: Publish |
+| PUBLISH-06 | Phase 7: Publish |
+| OPS-01 | Phase 8: End-to-End + Hardening |
+| OPS-02 | Phase 8: End-to-End + Hardening |
+| OPS-03 | Phase 8: End-to-End + Hardening |
+| OPS-04 | Phase 8: End-to-End + Hardening |
+| OPS-05 | Phase 8: End-to-End + Hardening |
+| OPS-06 | Phase 8: End-to-End + Hardening |
 
 ---
-*v1 requirement count: 54 across 8 categories*
+*v1 requirement count: 54 across 8 categories — 100% mapped*
