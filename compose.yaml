@@ -1,0 +1,50 @@
+# Compose v2 — no `version:` key.
+name: tech-news-synth
+
+services:
+  postgres:
+    image: postgres:16-bookworm   # pinned (T-02-06 supply-chain)
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tech_news_synth}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-tech_news_synth}
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    # INFRA-01 / T-02-09: no `ports:` — Postgres only reachable on the compose bridge.
+    stop_grace_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: tech-news-synth:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env                          # INFRA-03 secrets source of truth
+    volumes:
+      - logs:/data                    # INFRA-07 logs + INFRA-09 /data/paused marker
+      - ./config:/app/config:ro       # D-03 bind-mount :ro (T-02-10)
+    # Healthcheck defined via HEALTHCHECK directive in Dockerfile.
+    stop_grace_period: 30s            # gives scheduler.shutdown(wait=True) headroom
+    stop_signal: SIGTERM
+
+volumes:
+  pgdata:
+    name: tech-news-synth_pgdata
+  logs:
+    name: tech-news-synth_logs
+
+# No explicit `networks:` — Compose creates tech-news-synth_default (bridge).
