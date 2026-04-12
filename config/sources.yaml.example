@@ -1,0 +1,5 @@
+# tech-news-synth — sources configuration (Phase 4 populates this).
+# Copy to config/sources.yaml before first run.
+# Schema defined in Phase 4 (INGEST-01).
+version: 1
+sources: []

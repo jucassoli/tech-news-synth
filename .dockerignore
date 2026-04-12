@@ -14,7 +14,7 @@ htmlcov/
 .planning/
 tests/
 docs/
-README.md
+# README.md is kept — hatchling reads it to build the wheel (pyproject.toml readme= field)
 .pre-commit-config.yaml
 .github/
 .claude/
