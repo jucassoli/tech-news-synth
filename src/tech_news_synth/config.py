@@ -71,8 +71,7 @@ class Settings(BaseSettings):
         """
         if 24 % v != 0:
             raise ValueError(
-                "INTERVAL_HOURS must divide 24 evenly — "
-                "allowed: 1, 2, 3, 4, 6, 8, 12, 24"
+                "INTERVAL_HOURS must divide 24 evenly — allowed: 1, 2, 3, 4, 6, 8, 12, 24"
             )
         return v
 

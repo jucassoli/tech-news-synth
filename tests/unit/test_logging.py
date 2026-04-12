@@ -34,16 +34,12 @@ def test_dual_output_stdout_and_file(monkeypatch_env, capsys):
         line.get("event") == "hello" and line.get("foo") == 1 and line.get("level") == "info"
         for line in stdout_lines
     )
-    assert any(
-        re.search(r"(\+00:00|Z)$", line.get("timestamp", "")) for line in stdout_lines
-    )
+    assert any(re.search(r"(\+00:00|Z)$", line.get("timestamp", "")) for line in stdout_lines)
 
     log_file = Path(settings.log_dir) / "app.jsonl"
     assert log_file.exists()
     file_lines = _read_jsonl(log_file)
-    assert any(
-        line.get("event") == "hello" and line.get("foo") == 1 for line in file_lines
-    )
+    assert any(line.get("event") == "hello" and line.get("foo") == 1 for line in file_lines)
     # Clean up contextvars for other tests
     structlog.contextvars.clear_contextvars()
 
