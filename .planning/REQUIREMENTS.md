@@ -17,14 +17,14 @@
 
 ### INFRA — Foundations (Docker, Config, Observability, Scheduler)
 
-- [ ] **INFRA-01** — App runs via `docker compose up` with two services (`app`, `postgres`) and persistent volumes for DB and logs
+- [x] **INFRA-01** — App runs via `docker compose up` with two services (`app`, `postgres`) and persistent volumes for DB and logs
 - [x] **INFRA-02** — Container base is `python:3.12-slim-bookworm` (no Alpine); dependencies installed via `uv` with pinned `pyproject.toml` + lockfile
 - [x] **INFRA-03** — Secrets loaded via `pydantic-settings` from `.env` (through Compose `env_file:`); missing/invalid keys fail boot with clear error
 - [x] **INFRA-04** — `.env.example` committed; `.env` ignored by `.gitignore` and `.dockerignore`; pre-commit hook scans for leaked secrets
-- [ ] **INFRA-05** — Cycle runs on a long-lived in-process **APScheduler** (`BlockingScheduler` as PID 1) with `CronTrigger(hour="*/{INTERVAL_HOURS}")` and `timezone=UTC`
+- [x] **INFRA-05** — Cycle runs on a long-lived in-process **APScheduler** (`BlockingScheduler` as PID 1) with `CronTrigger(hour="*/{INTERVAL_HOURS}")` and `timezone=UTC`
 - [x] **INFRA-06** — All timestamps are UTC: Postgres columns use `TIMESTAMPTZ`; Python uses `datetime.now(timezone.utc)`; no `TZ=` set on containers
 - [x] **INFRA-07** — Structured JSON logs via `structlog`, written to stdout **and** a Docker volume; every log line includes a `cycle_id` bound at cycle start
-- [ ] **INFRA-08** — Per-cycle graceful failure: any unhandled exception inside `run_cycle()` is logged with stacktrace but never crashes the scheduler
+- [x] **INFRA-08** — Per-cycle graceful failure: any unhandled exception inside `run_cycle()` is logged with stacktrace but never crashes the scheduler
 - [x] **INFRA-09** — Kill switch respected at cycle start: if `PAUSED=1` env flag or `/data/paused` marker file exists, cycle exits 0 with a log line and performs no I/O
 - [x] **INFRA-10** — `DRY_RUN=1` flag short-circuits publishing (synthesis still runs; write to DB with `status=dry_run`; no X API call)
 
