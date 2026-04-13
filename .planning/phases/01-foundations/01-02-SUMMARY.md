@@ -3,7 +3,7 @@ phase: 01-foundations
 plan: 02
 subsystem: foundations
 tags: [scheduler, apscheduler, docker, compose, signal-handlers, cli]
-status: awaiting-checkpoint
+status: complete
 requirements:
   - INFRA-01
   - INFRA-05

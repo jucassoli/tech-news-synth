@@ -22,7 +22,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _env_file_for_settings() -> str | None:
-    """Return ``.env`` by default; ``None`` when tests disable env-file loading."""
+    """Return ``.env`` by default; ``None`` when tests disable env-file loading.
+
+    Evaluated at ``load_settings()`` call time (not class-body time) so test
+    fixtures that set ``PYDANTIC_SETTINGS_DISABLE_ENV_FILE=1`` are honored.
+    """
     if os.environ.get("PYDANTIC_SETTINGS_DISABLE_ENV_FILE") == "1":
         return None
     return ".env"
@@ -32,7 +36,7 @@ class Settings(BaseSettings):
     """Frozen, typed settings object for the agent."""
 
     model_config = SettingsConfigDict(
-        env_file=_env_file_for_settings(),
+        env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -95,7 +99,7 @@ def load_settings() -> Settings:
     No logging happens here — this runs before ``configure_logging`` (PITFALLS #5).
     """
     try:
-        return Settings()  # type: ignore[call-arg]
+        return Settings(_env_file=_env_file_for_settings())  # type: ignore[call-arg]
     except Exception as e:
         print(f"Configuration error:\n{e}", file=sys.stderr)
         raise
