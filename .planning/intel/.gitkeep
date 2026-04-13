@@ -1,0 +1,3 @@
+# Placeholder to keep the .planning/intel/ directory tracked in git.
+# This directory stores operator-facing intel docs produced by validation gates
+# (e.g., x-api-baseline.md from Phase 3). No secrets are ever committed here.
