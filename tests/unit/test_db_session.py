@@ -35,7 +35,7 @@ def test_base_is_declarative_with_empty_metadata() -> None:
     assert Base.metadata is not None
 
 
-def test_session_local_before_init_raises(monkeypatch_env) -> None:  # noqa: ARG001
+def test_session_local_before_init_raises(monkeypatch_env) -> None:
     session_mod = _fresh_session_module()
     try:
         session_mod.SessionLocal()
@@ -45,7 +45,7 @@ def test_session_local_before_init_raises(monkeypatch_env) -> None:  # noqa: ARG
         raise AssertionError("expected RuntimeError")
 
 
-def test_init_engine_is_idempotent(monkeypatch_env) -> None:  # noqa: ARG001
+def test_init_engine_is_idempotent(monkeypatch_env) -> None:
     session_mod = _fresh_session_module()
     settings = Settings()
     e1 = session_mod.init_engine(settings)
@@ -53,7 +53,7 @@ def test_init_engine_is_idempotent(monkeypatch_env) -> None:  # noqa: ARG001
     assert e1 is e2
 
 
-def test_init_engine_does_not_log_dsn_or_password(monkeypatch_env) -> None:  # noqa: ARG001
+def test_init_engine_does_not_log_dsn_or_password(monkeypatch_env) -> None:
     session_mod = _fresh_session_module()
     settings = Settings()
     password = settings.postgres_password.get_secret_value()

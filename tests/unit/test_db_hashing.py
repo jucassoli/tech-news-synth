@@ -11,7 +11,6 @@ import pytest
 
 from tech_news_synth.db.hashing import article_hash, canonicalize_url
 
-
 # ---------------------------------------------------------------------------
 # canonicalize_url — table-driven
 # ---------------------------------------------------------------------------

@@ -57,9 +57,7 @@ class RunLog(Base):
     )
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(Text, nullable=False)
-    counts: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, nullable=False, server_default="{}"
-    )
+    counts: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     notes: Mapped[str | None] = mapped_column(Text)
 
 
@@ -83,9 +81,7 @@ class Article(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     # D-06: SHA256 hex digest — CHAR(64) UNIQUE.
-    article_hash: Mapped[str] = mapped_column(
-        String(64), nullable=False, unique=True
-    )
+    article_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     etag: Mapped[str | None] = mapped_column(Text)
     last_modified: Mapped[str | None] = mapped_column(Text)
 
@@ -145,9 +141,7 @@ class Post(Base):
     tweet_id: Mapped[str | None] = mapped_column(Text)
     cost_usd: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
     synthesized_text: Mapped[str | None] = mapped_column(Text)
-    hashtags: Mapped[list[str]] = mapped_column(
-        ARRAY(Text), nullable=False, server_default="{}"
-    )
+    hashtags: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

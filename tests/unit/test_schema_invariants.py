@@ -22,9 +22,7 @@ def test_every_datetime_is_timestamptz() -> None:
     for table in Base.metadata.tables.values():
         for col in table.columns:
             if isinstance(col.type, sa.DateTime):
-                assert col.type.timezone is True, (
-                    f"{table.name}.{col.name} is not TIMESTAMPTZ"
-                )
+                assert col.type.timezone is True, f"{table.name}.{col.name} is not TIMESTAMPTZ"
 
 
 def test_article_hash_is_char64_unique() -> None:

@@ -41,8 +41,7 @@ def canonicalize_url(url: str) -> str:
     query_pairs = [
         (k, v)
         for k, v in parse_qsl(parts.query, keep_blank_values=True)
-        if not k.startswith(_TRACKING_PARAM_PREFIXES)
-        and k not in _TRACKING_PARAMS_EXACT
+        if not k.startswith(_TRACKING_PARAM_PREFIXES) and k not in _TRACKING_PARAMS_EXACT
     ]
     query_pairs.sort(key=lambda kv: (kv[0], kv[1]))
     query = urlencode(query_pairs)
