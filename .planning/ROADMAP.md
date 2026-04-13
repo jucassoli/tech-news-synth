@@ -71,8 +71,8 @@ Plans:
   5. Each persisted article exposes `id`, `source`, `url`, `canonical_url`, `title`, HTML-stripped `summary`, UTC-aware `published_at`, `fetched_at`, and `article_hash`; a source with 20 consecutive failures is auto-disabled and re-enabled only via CLI
 **Plans:** 2 plans
 Plans:
-- [ ] 04-01-PLAN.md — Scaffolding: pyyaml dep, ingest package tree, sources.yaml + fixtures, pydantic discriminated-union loader, ArticleRow + normalize, shared httpx.Client + tenacity helper, SourceState ORM + Alembic migration + repo helpers
-- [ ] 04-02-PLAN.md — Fetchers (RSS/HN/Reddit) + registry, orchestrator with per-source isolation + cycle-start auto-disable + counts, Settings/scheduler/__main__ wiring, compose smoke checkpoint
+- [x] 04-01-PLAN.md — Scaffolding: pyyaml dep, ingest package tree, sources.yaml + fixtures, pydantic discriminated-union loader, ArticleRow + normalize, shared httpx.Client + tenacity helper, SourceState ORM + Alembic migration + repo helpers
+- [x] 04-02-PLAN.md — Fetchers (RSS/HN/Reddit) + registry, orchestrator with per-source isolation + cycle-start auto-disable + counts, Settings/scheduler/__main__ wiring, compose smoke checkpoint
 
 ### Phase 5: Cluster + Rank
 **Goal**: A deterministic, pure-core clustering + ranking module that picks the cycle's winning topic, enforces 48h semantic anti-repetition, and always has a fallback so cadence holds

@@ -47,12 +47,12 @@
 ### INGEST — Sources, Fetch, Normalize
 
 - [ ] **INGEST-01** — Source list loaded from a mounted `sources.yaml` (not DB); schema supports add/edit/remove without code changes; invalid entries fail boot with clear error
-- [ ] **INGEST-02** — Initial source set supported: TechCrunch RSS, The Verge RSS, Ars Technica RSS, Hacker News (Firebase `topstories`), Reddit r/technology (`.json`)
+- [x] **INGEST-02** — Initial source set supported: TechCrunch RSS, The Verge RSS, Ars Technica RSS, Hacker News (Firebase `topstories`), Reddit r/technology (`.json`)
 - [ ] **INGEST-03** — Each source fetch uses `httpx` with a per-source timeout, descriptive User-Agent `ByteRelevant/0.1 (+https://x.com/ByteRelevant)`, and `tenacity` retry (max 3, exponential backoff)
-- [ ] **INGEST-04** — Conditional GET: per-source ETag and `Last-Modified` stored in DB and sent on subsequent fetches to avoid re-processing unchanged feeds
-- [ ] **INGEST-05** — Per-source failure isolation: a 5xx, timeout, or parse error on one source logs a warning and is skipped; cycle continues with remaining sources
+- [x] **INGEST-04** — Conditional GET: per-source ETag and `Last-Modified` stored in DB and sent on subsequent fetches to avoid re-processing unchanged feeds
+- [x] **INGEST-05** — Per-source failure isolation: a 5xx, timeout, or parse error on one source logs a warning and is skipped; cycle continues with remaining sources
 - [ ] **INGEST-06** — Normalizer produces a unified `Article` dataclass: `id`, `source`, `url`, `canonical_url`, `title`, `summary`, `published_at` (UTC aware), `fetched_at`, `article_hash`; HTML stripped from summary via `beautifulsoup4/lxml`
-- [ ] **INGEST-07** — Source-health tracking: consecutive failure counter per source persisted; auto-disable after N consecutive failures (default 20) with an explicit re-enable CLI
+- [x] **INGEST-07** — Source-health tracking: consecutive failure counter per source persisted; auto-disable after N consecutive failures (default 20) with an explicit re-enable CLI
 
 ### CLUSTER — Clustering, Ranking, Anti-Repetition
 
