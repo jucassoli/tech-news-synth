@@ -53,11 +53,33 @@ def _config() -> SourcesConfig:
         max_articles_per_fetch=30,
         max_article_age_hours=24,
         sources=[
-            RssSource(name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20),  # type: ignore[arg-type]
-            RssSource(name="verge", type="rss", url="https://www.theverge.com/rss/index.xml", timeout_sec=20),  # type: ignore[arg-type]
-            RssSource(name="ars_technica", type="rss", url="https://feeds.arstechnica.com/arstechnica/index", timeout_sec=20),  # type: ignore[arg-type]
-            HnFirebaseSource(name="hacker_news", type="hn_firebase", url="https://hacker-news.firebaseio.com/v0", timeout_sec=15),  # type: ignore[arg-type]
-            RedditJsonSource(name="reddit_technology", type="reddit_json", url="https://www.reddit.com/r/technology/.json", timeout_sec=15),  # type: ignore[arg-type]
+            RssSource(
+                name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20
+            ),  # type: ignore[arg-type]
+            RssSource(
+                name="verge",
+                type="rss",
+                url="https://www.theverge.com/rss/index.xml",
+                timeout_sec=20,
+            ),  # type: ignore[arg-type]
+            RssSource(
+                name="ars_technica",
+                type="rss",
+                url="https://feeds.arstechnica.com/arstechnica/index",
+                timeout_sec=20,
+            ),  # type: ignore[arg-type]
+            HnFirebaseSource(
+                name="hacker_news",
+                type="hn_firebase",
+                url="https://hacker-news.firebaseio.com/v0",
+                timeout_sec=15,
+            ),  # type: ignore[arg-type]
+            RedditJsonSource(
+                name="reddit_technology",
+                type="reddit_json",
+                url="https://www.reddit.com/r/technology/.json",
+                timeout_sec=15,
+            ),  # type: ignore[arg-type]
         ],
     )
 
@@ -113,7 +135,7 @@ def test_one_source_500_others_succeed(db_session, monkeypatch):
     assert tc.disabled_at is None  # not yet at threshold
 
     # Others inserted articles (at least one non-techcrunch article exists).
-    other_articles = db_session.execute(
-        select(Article).where(Article.source != "techcrunch")
-    ).scalars().all()
+    other_articles = (
+        db_session.execute(select(Article).where(Article.source != "techcrunch")).scalars().all()
+    )
     assert len(other_articles) > 0

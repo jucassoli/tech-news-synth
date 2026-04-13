@@ -14,7 +14,6 @@ from tech_news_synth.ingest.fetchers.hn_firebase import fetch
 from tech_news_synth.ingest.http import USER_AGENT
 from tech_news_synth.ingest.sources_config import HnFirebaseSource, SourcesConfig
 
-
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "json"
 HN_TOPSTORIES = json.loads((FIXTURES / "hn_topstories.json").read_text())
 HN_ITEM_1 = json.loads((FIXTURES / "hn_item_1.json").read_text())  # story + url
@@ -56,9 +55,15 @@ def test_hn_filters_type_and_url():
     respx.get(f"{BASE_URL}/topstories.json").mock(
         return_value=httpx.Response(200, json=[39000001, 39000002, 39000003])
     )
-    respx.get(f"{BASE_URL}/item/39000001.json").mock(return_value=httpx.Response(200, json=HN_ITEM_1))
-    respx.get(f"{BASE_URL}/item/39000002.json").mock(return_value=httpx.Response(200, json=HN_ITEM_2))
-    respx.get(f"{BASE_URL}/item/39000003.json").mock(return_value=httpx.Response(200, json=HN_ITEM_3))
+    respx.get(f"{BASE_URL}/item/39000001.json").mock(
+        return_value=httpx.Response(200, json=HN_ITEM_1)
+    )
+    respx.get(f"{BASE_URL}/item/39000002.json").mock(
+        return_value=httpx.Response(200, json=HN_ITEM_2)
+    )
+    respx.get(f"{BASE_URL}/item/39000003.json").mock(
+        return_value=httpx.Response(200, json=HN_ITEM_3)
+    )
 
     with _client() as client, time_machine.travel(FROZEN_NOW, tick=False):
         rows, meta = fetch(_source(cap=3), client, None, None, _config())
@@ -76,15 +81,16 @@ def test_hn_filters_type_and_url():
 def test_hn_cap_slices_topstories_before_fetch():
     # 50 IDs.
     many_ids = list(range(40000001, 40000051))
-    respx.get(f"{BASE_URL}/topstories.json").mock(
-        return_value=httpx.Response(200, json=many_ids)
-    )
+    respx.get(f"{BASE_URL}/topstories.json").mock(return_value=httpx.Response(200, json=many_ids))
     item_route = respx.get(url__regex=rf"{BASE_URL}/item/\d+\.json").mock(
         return_value=httpx.Response(
             200,
             json={
-                "id": 1, "type": "story", "title": "t",
-                "url": "https://example.com/a", "time": 1776095400,
+                "id": 1,
+                "type": "story",
+                "title": "t",
+                "url": "https://example.com/a",
+                "time": 1776095400,
             },
         )
     )
@@ -118,9 +124,7 @@ def test_hn_ua_header_on_every_call():
 # ---------------------------------------------------------------------------
 @respx.mock
 def test_hn_max_age_filter():
-    respx.get(f"{BASE_URL}/topstories.json").mock(
-        return_value=httpx.Response(200, json=[39000001])
-    )
+    respx.get(f"{BASE_URL}/topstories.json").mock(return_value=httpx.Response(200, json=[39000001]))
     respx.get(f"{BASE_URL}/item/39000001.json").mock(
         return_value=httpx.Response(200, json=HN_ITEM_1)
     )

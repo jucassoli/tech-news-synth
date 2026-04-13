@@ -44,7 +44,9 @@ def _config() -> SourcesConfig:
         max_articles_per_fetch=30,
         max_article_age_hours=24,
         sources=[
-            RssSource(name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20),  # type: ignore[arg-type]
+            RssSource(
+                name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20
+            ),  # type: ignore[arg-type]
         ],
     )
 
@@ -68,7 +70,9 @@ def test_second_cycle_304_zero_inserts(db_session):
 
     assert counts_1["sources_ok"] == 1
     assert counts_1["articles_upserted"] >= 1
-    state = db_session.execute(select(SourceState).where(SourceState.name == "techcrunch")).scalar_one()
+    state = db_session.execute(
+        select(SourceState).where(SourceState.name == "techcrunch")
+    ).scalar_one()
     assert state.etag == 'W/"tc-v1"'
     assert state.last_status == "ok"
 
@@ -87,7 +91,9 @@ def test_second_cycle_304_zero_inserts(db_session):
 
     assert counts_2["sources_ok"] == 1
     assert counts_2["articles_upserted"] == 0
-    state2 = db_session.execute(select(SourceState).where(SourceState.name == "techcrunch")).scalar_one()
+    state2 = db_session.execute(
+        select(SourceState).where(SourceState.name == "techcrunch")
+    ).scalar_one()
     assert state2.last_status == "skipped_304"
     assert state2.consecutive_failures == 0
 

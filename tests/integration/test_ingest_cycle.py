@@ -55,11 +55,33 @@ def _five_source_config() -> SourcesConfig:
         max_articles_per_fetch=30,
         max_article_age_hours=24,
         sources=[
-            RssSource(name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20),  # type: ignore[arg-type]
-            RssSource(name="verge", type="rss", url="https://www.theverge.com/rss/index.xml", timeout_sec=20),  # type: ignore[arg-type]
-            RssSource(name="ars_technica", type="rss", url="https://feeds.arstechnica.com/arstechnica/index", timeout_sec=20),  # type: ignore[arg-type]
-            HnFirebaseSource(name="hacker_news", type="hn_firebase", url="https://hacker-news.firebaseio.com/v0", timeout_sec=15),  # type: ignore[arg-type]
-            RedditJsonSource(name="reddit_technology", type="reddit_json", url="https://www.reddit.com/r/technology/.json", timeout_sec=15),  # type: ignore[arg-type]
+            RssSource(
+                name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20
+            ),  # type: ignore[arg-type]
+            RssSource(
+                name="verge",
+                type="rss",
+                url="https://www.theverge.com/rss/index.xml",
+                timeout_sec=20,
+            ),  # type: ignore[arg-type]
+            RssSource(
+                name="ars_technica",
+                type="rss",
+                url="https://feeds.arstechnica.com/arstechnica/index",
+                timeout_sec=20,
+            ),  # type: ignore[arg-type]
+            HnFirebaseSource(
+                name="hacker_news",
+                type="hn_firebase",
+                url="https://hacker-news.firebaseio.com/v0",
+                timeout_sec=15,
+            ),  # type: ignore[arg-type]
+            RedditJsonSource(
+                name="reddit_technology",
+                type="reddit_json",
+                url="https://www.reddit.com/r/technology/.json",
+                timeout_sec=15,
+            ),  # type: ignore[arg-type]
         ],
     )
 
@@ -104,7 +126,11 @@ def test_all_sources_ok(db_session):
     # Every source has a source_state row with last_status='ok'.
     states = db_session.execute(select(SourceState)).scalars().all()
     assert {s.name for s in states} == {
-        "techcrunch", "verge", "ars_technica", "hacker_news", "reddit_technology",
+        "techcrunch",
+        "verge",
+        "ars_technica",
+        "hacker_news",
+        "reddit_technology",
     }
     for s in states:
         assert s.last_status == "ok", f"{s.name}: {s.last_status}"

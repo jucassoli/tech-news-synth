@@ -59,8 +59,15 @@ def _config() -> SourcesConfig:
         max_articles_per_fetch=30,
         max_article_age_hours=24,
         sources=[
-            RssSource(name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20),  # type: ignore[arg-type]
-            HnFirebaseSource(name="hacker_news", type="hn_firebase", url="https://hacker-news.firebaseio.com/v0", timeout_sec=15),  # type: ignore[arg-type]
+            RssSource(
+                name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20
+            ),  # type: ignore[arg-type]
+            HnFirebaseSource(
+                name="hacker_news",
+                type="hn_firebase",
+                url="https://hacker-news.firebaseio.com/v0",
+                timeout_sec=15,
+            ),  # type: ignore[arg-type]
         ],
     )
 
@@ -99,8 +106,6 @@ def test_counts_dict_shape_and_jsonb_roundtrip(db_session):
     finish_cycle(db_session, cycle_id, "ok", counts=counts)
     db_session.flush()
 
-    row = db_session.execute(
-        select(RunLog).where(RunLog.cycle_id == cycle_id)
-    ).scalar_one()
+    row = db_session.execute(select(RunLog).where(RunLog.cycle_id == cycle_id)).scalar_one()
     assert set(row.counts.keys()) == EXPECTED_KEYS
     assert row.counts["articles_upserted"] == counts["articles_upserted"]

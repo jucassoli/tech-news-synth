@@ -14,7 +14,6 @@ from tech_news_synth.ingest.fetchers.reddit_json import fetch
 from tech_news_synth.ingest.http import USER_AGENT
 from tech_news_synth.ingest.sources_config import RedditJsonSource, SourcesConfig
 
-
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "json"
 REDDIT_FIXTURE = json.loads((FIXTURES / "reddit_technology.json").read_text())
 

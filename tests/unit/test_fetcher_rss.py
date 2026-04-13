@@ -23,7 +23,6 @@ from tech_news_synth.ingest.fetchers.rss import fetch
 from tech_news_synth.ingest.http import USER_AGENT
 from tech_news_synth.ingest.sources_config import RssSource, SourcesConfig
 
-
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "rss"
 TECHCRUNCH_FIXTURE = (FIXTURES / "techcrunch.xml").read_bytes()
 VERGE_FIXTURE = (FIXTURES / "verge.xml").read_bytes()
@@ -102,9 +101,7 @@ def test_rss_happy_path():
 # ---------------------------------------------------------------------------
 @respx.mock
 def test_rss_304_short_circuits():
-    route = respx.get("https://techcrunch.com/feed/").mock(
-        return_value=httpx.Response(304)
-    )
+    route = respx.get("https://techcrunch.com/feed/").mock(return_value=httpx.Response(304))
     with _client() as client, time_machine.travel(FROZEN_NOW, tick=False):
         rows, meta = fetch(
             _source(),
@@ -147,9 +144,7 @@ def test_rss_missing_pubdate_fallback():
     <description>body</description>
   </item>
 </channel></rss>"""
-    respx.get("https://techcrunch.com/feed/").mock(
-        return_value=httpx.Response(200, content=xml)
-    )
+    respx.get("https://techcrunch.com/feed/").mock(return_value=httpx.Response(200, content=xml))
     with _client() as client, time_machine.travel(FROZEN_NOW, tick=False):
         rows, _ = fetch(_source(), client, None, None, _config())
     assert len(rows) == 1
@@ -169,9 +164,7 @@ def test_rss_max_age_filter():
     # Freeze far enough ahead that all 5 fixture items fall outside the window.
     future = FROZEN_NOW + timedelta(days=2)
     with _client() as client, time_machine.travel(future, tick=False):
-        rows, _ = fetch(
-            _source(), client, None, None, _config(max_article_age_hours=24)
-        )
+        rows, _ = fetch(_source(), client, None, None, _config(max_article_age_hours=24))
     assert rows == []
 
 
@@ -185,9 +178,7 @@ def test_rss_cap_slice():
     )
     # Fixture has 5 entries; cap=2 ⇒ 2 returned.
     with _client() as client, time_machine.travel(FROZEN_NOW, tick=False):
-        rows, _ = fetch(
-            _source(cap=2), client, None, None, _config()
-        )
+        rows, _ = fetch(_source(cap=2), client, None, None, _config())
     assert len(rows) == 2
     # Still newest-first.
     assert rows[0].title.startswith("OpenAI")

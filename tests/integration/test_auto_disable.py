@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from pathlib import Path
 
 import httpx
 import pytest
@@ -38,7 +37,9 @@ def _config() -> SourcesConfig:
         max_articles_per_fetch=30,
         max_article_age_hours=24,
         sources=[
-            RssSource(name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20),  # type: ignore[arg-type]
+            RssSource(
+                name="techcrunch", type="rss", url="https://techcrunch.com/feed/", timeout_sec=20
+            ),  # type: ignore[arg-type]
         ],
     )
 

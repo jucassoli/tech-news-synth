@@ -151,6 +151,78 @@ def test_run_cycle_skips_run_log_when_paused(
     finish.assert_not_called()
 
 
+# ---------------------------------------------------------------------------
+# Phase 4 wiring: http_client + run_ingest + counts propagation
+# ---------------------------------------------------------------------------
+def test_run_cycle_calls_run_ingest_with_counts(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    """run_cycle builds http_client, invokes run_ingest, forwards counts to
+    finish_cycle, and closes the client even on clean exit."""
+    _, _, _, finish = mock_db_in_scheduler
+    fake_counts = {
+        "articles_fetched": {"x": 1},
+        "articles_upserted": 1,
+        "sources_ok": 1,
+        "sources_error": 0,
+        "sources_skipped_disabled": 0,
+    }
+    run_ingest = mocker.patch("tech_news_synth.scheduler.run_ingest", return_value=fake_counts)
+    fake_client = mocker.MagicMock(name="http_client")
+    build = mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=fake_client)
+    sources_config = mocker.MagicMock(name="sources_config")
+
+    run_cycle(settings, sources_config=sources_config)
+
+    build.assert_called_once()
+    run_ingest.assert_called_once()
+    # run_ingest(session, sources_config, client, settings)
+    call_args = run_ingest.call_args
+    assert call_args.args[1] is sources_config
+    assert call_args.args[2] is fake_client
+    assert call_args.args[3] is settings
+    fake_client.close.assert_called_once()
+
+    # Counts forwarded to finish_cycle.
+    _, finish_kwargs = finish.call_args
+    assert finish_kwargs["counts"] == fake_counts
+    assert finish_kwargs["status"] == "ok"
+
+
+def test_run_cycle_closes_http_client_on_error(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    """Even when run_ingest raises, http_client.close() must fire."""
+    _, _, _, finish = mock_db_in_scheduler
+    mocker.patch("tech_news_synth.scheduler.run_ingest", side_effect=RuntimeError("boom"))
+    fake_client = mocker.MagicMock(name="http_client")
+    mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=fake_client)
+    sources_config = mocker.MagicMock(name="sources_config")
+
+    run_cycle(settings, sources_config=sources_config)  # must not propagate
+
+    fake_client.close.assert_called_once()
+    _, finish_kwargs = finish.call_args
+    assert finish_kwargs["status"] == "error"
+    # Counts default to {} on error (run_ingest didn't return).
+    assert finish_kwargs["counts"] == {}
+
+
+def test_paused_cycle_does_not_build_http_client(
+    settings: Settings, mock_db_in_scheduler, mocker, monkeypatch
+) -> None:
+    """INFRA-09 regression: paused cycles build no http client, no session."""
+    monkeypatch.setattr(scheduler_mod, "is_paused", lambda s: (True, "env"))
+    build = mocker.patch("tech_news_synth.scheduler.build_http_client")
+    run_ingest = mocker.patch("tech_news_synth.scheduler.run_ingest")
+    sources_config = mocker.MagicMock(name="sources_config")
+
+    run_cycle(settings, sources_config=sources_config)
+
+    build.assert_not_called()
+    run_ingest.assert_not_called()
+
+
 def test_contextvars_bound_and_cleared(
     monkeypatch_env, monkeypatch, capture_logs: io.StringIO
 ) -> None:

@@ -42,7 +42,10 @@ def fetch(
 
     base = str(source.url).rstrip("/")
     topstories_resp = fetch_with_retry(
-        client, "GET", f"{base}/topstories.json", timeout=timeout,
+        client,
+        "GET",
+        f"{base}/topstories.json",
+        timeout=timeout,
     )
     topstories_resp.raise_for_status()
     ids = topstories_resp.json()[:cap]  # T-04-12: slice BEFORE iterating
@@ -53,7 +56,10 @@ def fetch(
 
     for item_id in ids:
         r = fetch_with_retry(
-            client, "GET", f"{base}/item/{item_id}.json", timeout=timeout,
+            client,
+            "GET",
+            f"{base}/item/{item_id}.json",
+            timeout=timeout,
         )
         r.raise_for_status()
         item = r.json() or {}

@@ -26,25 +26,31 @@ from structlog.contextvars import bind_contextvars, clear_contextvars
 from tech_news_synth.db.run_log import finish_cycle, start_cycle
 from tech_news_synth.db.session import SessionLocal
 from tech_news_synth.ids import new_cycle_id
+from tech_news_synth.ingest.http import build_http_client
+from tech_news_synth.ingest.orchestrator import run_ingest
 from tech_news_synth.killswitch import is_paused
 from tech_news_synth.logging import get_logger
 
 if TYPE_CHECKING:
     from tech_news_synth.config import Settings
+    from tech_news_synth.ingest.sources_config import SourcesConfig
 
 log = get_logger(__name__)
 
 
 def _run_cycle_body(settings: Settings) -> None:
-    """Phase 1 no-op body. Later phases replace with fetch→cluster→synth→publish.
+    """Deprecated Phase 1 no-op hook.
 
-    Extracted as a module-level function so tests can monkeypatch it to inject
-    failures (INFRA-08 isolation tests).
+    Retained so existing INFRA-08 isolation tests can monkeypatch it to inject
+    failures. ``run_cycle`` no longer calls it in the ingest-enabled path — new
+    failure-injection tests should patch ``run_ingest`` directly. For tests
+    that still monkeypatch this symbol, ``run_cycle`` invokes it when
+    ``sources_config`` is None so the Phase 1 behavior is preserved.
     """
     return None
 
 
-def run_cycle(settings: Settings) -> None:
+def run_cycle(settings: Settings, sources_config: SourcesConfig | None = None) -> None:
     """One scheduler tick. Never raises (INFRA-08).
 
     Invariants:
@@ -63,11 +69,13 @@ def run_cycle(settings: Settings) -> None:
     bind_contextvars(cycle_id=cycle_id, dry_run=bool(settings.dry_run))
     session = None
     status = "error"
+    counts: dict[str, object] = {}
+    http_client = None
     try:
         paused, reason = is_paused(settings)
         if paused:
             log.info("cycle_skipped", status="paused", paused_by=reason)
-            return  # INFRA-09: no run_log row when paused.
+            return  # INFRA-09: no run_log row, no http client when paused.
 
         # Open session + write run_log start row (STORE-05).
         session = SessionLocal()
@@ -76,18 +84,27 @@ def run_cycle(settings: Settings) -> None:
 
         log.info("cycle_start", interval_hours=settings.interval_hours)
         try:
-            _run_cycle_body(settings)
+            if sources_config is not None:
+                # Phase 4+ path: real ingest cycle.
+                http_client = build_http_client()
+                counts = run_ingest(session, sources_config, http_client, settings)
+            else:
+                # Phase 1 legacy path (tests monkeypatch _run_cycle_body).
+                _run_cycle_body(settings)
             status = "ok"
         except Exception:
             # INFRA-08: never propagate; log full stacktrace.
             log.exception("cycle_error")
             status = "error"
             return
+        finally:
+            if http_client is not None:
+                http_client.close()
         log.info("cycle_end", status=status)
     finally:
         if session is not None:
             try:
-                finish_cycle(session, cycle_id, status=status, counts={})
+                finish_cycle(session, cycle_id, status=status, counts=counts)
                 session.commit()
             except Exception:
                 log.exception("run_log_finish_failed")
@@ -108,7 +125,10 @@ def _job_error_listener(event: JobExecutionEvent) -> None:
     )
 
 
-def build_scheduler(settings: Settings) -> BlockingScheduler:
+def build_scheduler(
+    settings: Settings,
+    sources_config: SourcesConfig | None = None,
+) -> BlockingScheduler:
     """Return a configured BlockingScheduler with one job (``run_cycle``).
 
     D-07: ``next_run_time=datetime.now(timezone.utc)`` makes the first tick
@@ -122,7 +142,7 @@ def build_scheduler(settings: Settings) -> BlockingScheduler:
     scheduler.add_job(
         run_cycle,
         CronTrigger(hour=f"*/{settings.interval_hours}", timezone=UTC),
-        kwargs={"settings": settings},
+        kwargs={"settings": settings, "sources_config": sources_config},
         id="run_cycle",
         replace_existing=True,
         next_run_time=datetime.now(UTC),  # D-07 first-tick-on-boot
@@ -145,14 +165,16 @@ def _install_signal_handlers(scheduler: BlockingScheduler) -> None:
     signal.signal(signal.SIGINT, _shutdown)
 
 
-def run(settings: Settings) -> None:
+def run(settings: Settings, *, sources_config: SourcesConfig | None = None) -> None:
     """Entrypoint invoked by ``__main__.py`` when no subcommand is given.
 
     NOTE: ``configure_logging`` and ``init_engine`` are now called by
     ``__main__._dispatch_scheduler`` BEFORE this function so alembic + DB
-    bootstrap flow through the JSON pipeline (D-01).
+    bootstrap flow through the JSON pipeline (D-01). ``sources_config`` is
+    loaded + validated by ``__main__`` before entering ``run`` (INGEST-01
+    fail-fast at boot).
     """
-    scheduler = build_scheduler(settings)
+    scheduler = build_scheduler(settings, sources_config=sources_config)
     _install_signal_handlers(scheduler)
     log.info(
         "scheduler_starting",

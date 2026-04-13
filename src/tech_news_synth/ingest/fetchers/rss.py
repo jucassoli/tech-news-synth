@@ -48,7 +48,11 @@ def fetch(
 
     timeout = httpx.Timeout(source.timeout_sec, connect=5.0)
     response = fetch_with_retry(
-        client, "GET", str(source.url), timeout=timeout, headers=headers,
+        client,
+        "GET",
+        str(source.url),
+        timeout=timeout,
+        headers=headers,
     )
     if response.status_code == 304:
         return [], {"status": "skipped_304", "etag": None, "last_modified": None}

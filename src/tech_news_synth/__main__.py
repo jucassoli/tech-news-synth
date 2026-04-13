@@ -26,9 +26,12 @@ def _dispatch_scheduler() -> int:
        so the container exits non-zero).
     5. ``scheduler.run`` — installs signal handlers and blocks.
     """
+    from pathlib import Path
+
     from tech_news_synth.config import load_settings
     from tech_news_synth.db.migrations import run_migrations
     from tech_news_synth.db.session import init_engine
+    from tech_news_synth.ingest.sources_config import load_sources_config
     from tech_news_synth.logging import configure_logging
     from tech_news_synth.scheduler import run
 
@@ -41,7 +44,15 @@ def _dispatch_scheduler() -> int:
     configure_logging(settings)
     init_engine(settings)
     run_migrations()
-    run(settings)
+
+    # INGEST-01: fail-fast sources.yaml validation at boot.
+    try:
+        sources_config = load_sources_config(Path(settings.sources_config_path))
+    except Exception:
+        # load_sources_config already printed a readable error to stderr.
+        return 2
+
+    run(settings, sources_config=sources_config)
     return 0
 
 
