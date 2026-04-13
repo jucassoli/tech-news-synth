@@ -87,8 +87,10 @@ def test_upgrade_downgrade_upgrade_roundtrip(alembic_cfg, test_dsn: str):
         assert TABLES.issubset(present), f"missing after upgrade: {TABLES - present}"
         assert "alembic_version" in present
 
-        # Downgrade -1 → our four tables gone; alembic_version may remain.
-        command.downgrade(alembic_cfg, "-1")
+        # Downgrade to base → our four tables gone; alembic_version may remain.
+        # (Phase 4 added a second revision, so -1 only drops source_state;
+        # we verify full reversibility by going all the way to base.)
+        command.downgrade(alembic_cfg, "base")
         insp = inspect(engine)
         remaining = set(insp.get_table_names())
         survived = remaining & TABLES

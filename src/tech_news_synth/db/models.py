@@ -30,6 +30,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     LargeBinary,
     Numeric,
     String,
@@ -163,4 +164,26 @@ class Post(Base):
     )
 
 
-__all__ = ["Article", "Cluster", "Post", "RunLog"]
+class SourceState(Base):
+    """Per-source ingest health + conditional-GET cache (Phase 4 D-04).
+
+    One row per entry in ``config/sources.yaml``. Upserted-on-first-sight by
+    the orchestrator. Tracks ETag/Last-Modified for conditional GET
+    (INGEST-04), consecutive_failures for auto-disable (INGEST-07), and
+    last_fetched_at/last_status for operator observability.
+    """
+
+    __tablename__ = "source_state"
+
+    name: Mapped[str] = mapped_column(Text, primary_key=True)
+    etag: Mapped[str | None] = mapped_column(Text)
+    last_modified: Mapped[str | None] = mapped_column(Text)
+    consecutive_failures: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_status: Mapped[str | None] = mapped_column(Text)
+
+
+__all__ = ["Article", "Cluster", "Post", "RunLog", "SourceState"]
