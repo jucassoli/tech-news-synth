@@ -38,11 +38,11 @@
 ### STORE — Persistence Layer
 
 - [ ] **STORE-01** — Postgres schema managed by Alembic migrations, versioned in the repo; `alembic upgrade head` runs on container startup
-- [ ] **STORE-02** — `articles` table stores normalized articles with `article_hash` (`UNIQUE`, from canonicalized URL); upsert idempotent via `ON CONFLICT DO NOTHING`
+- [x] **STORE-02** — `articles` table stores normalized articles with `article_hash` (`UNIQUE`, from canonicalized URL); upsert idempotent via `ON CONFLICT DO NOTHING`
 - [ ] **STORE-03** — `clusters` table persists cluster metadata per cycle (cycle_id, member article ids, centroid/top-K terms, chosen status, coverage score)
-- [ ] **STORE-04** — `posts` table persists publish attempts with columns: `theme_centroid` (BYTEA or `TEXT[]`), `status` (`pending|posted|failed|dry_run`), `tweet_id`, `cost_usd`, `created_at`, `posted_at`
+- [x] **STORE-04** — `posts` table persists publish attempts with columns: `theme_centroid` (BYTEA or `TEXT[]`), `status` (`pending|posted|failed|dry_run`), `tweet_id`, `cost_usd`, `created_at`, `posted_at`
 - [ ] **STORE-05** — `run_log` table records every cycle: `cycle_id`, `started_at`, `finished_at`, `status`, `counts` (articles fetched per source, clusters formed), `notes`
-- [ ] **STORE-06** — All article/post timestamps in `TIMESTAMPTZ`; retention of articles is at least 14 days to support 48h anti-repetition with safety margin
+- [x] **STORE-06** — All article/post timestamps in `TIMESTAMPTZ`; retention of articles is at least 14 days to support 48h anti-repetition with safety margin
 
 ### INGEST — Sources, Fetch, Normalize
 

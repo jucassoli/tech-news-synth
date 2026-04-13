@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: "Plan 01-01 executed: scaffold + core modules (config, logging, ids, killswitch) green"
-stopped_at: Awaiting operator docker compose smoke (Plan 01-02 checkpoint, 11 steps)
-last_updated: "2026-04-12T20:45:41.656Z"
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-04-13T12:19:56.095Z"
 progress:
   total_phases: 8
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 100
+  total_plans: 4
+  completed_plans: 3
+  percent: 75
 ---
 
 # tech-news-synth — STATE
@@ -21,21 +21,24 @@ progress:
 
 - **What:** Python agent that every 2h pulls tech news from 5 public feeds (TechCrunch/Verge/Ars RSS + HN Firebase + Reddit r/tech JSON), clusters by TF-IDF title similarity, synthesizes the highest-coverage cluster into one PT-BR tweet via Claude Haiku 4.5, and posts to @ByteRelevant.
 - **Core value:** One post per cycle that highlights the most-covered tech topic without repeating within 48h — signal over noise.
-- **Current focus:** Phase 01 — foundations (Plan 01-01 complete; Plan 01-02 next).
+- **Current focus:** Phase 02 — Storage Layer
 
 ## Current Position
 
+Phase: 02 (Storage Layer) — EXECUTING
+Plan: 2 of 2
+
 - **Milestone:** v1 (initial production-ready agent on @ByteRelevant)
-- **Phase:** 01 — Foundations (EXECUTING)
-- **Plan:** 01-01 COMPLETE → 01-02 next
-- **Status:** Plan 01-01 executed: scaffold + core modules (config, logging, ids, killswitch) green
-- **Progress:** [██████████] 100%
+- **Phase:** 02 — Storage Layer (EXECUTING)
+- **Plan:** 02-01 COMPLETE → 02-02 next
+- **Status:** Executing Phase 02
+- **Progress:** [████████░░] 75%
 
 ## Performance Metrics
 
-- **Phases planned:** 1 / 8
-- **Plans complete:** 1 / 2 (Phase 01)
-- **Requirements covered:** 7 / 54 (INFRA-02, 03, 04, 06, 07, 09, 10)
+- **Phases planned:** 2 / 8
+- **Plans complete:** 3 / 4 (Phase 01 complete; Phase 02 P01 complete)
+- **Requirements covered:** 10 / 54 (+ STORE-02, STORE-04, STORE-06 partial — schema/helpers ready, Plan 02-02 completes)
 - **Cycles executed:** 0
 - **Dry-run hours accumulated:** 0 / 48 (soak target in Phase 8)
 
@@ -45,6 +48,7 @@ progress:
 |------|--------------|-------|-------|---------|--------|
 | 01-01 | 302 | 5 | 24 | 6 | 53 passed, 3 skipped (stubs), 99% cov |
 | Phase 01 P02 | 457 | 3 tasks | 13 files |
+| Phase 02 P01 | 1300 | 5 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -70,21 +74,21 @@ progress:
 
 ### Todos (inbox)
 
-- [ ] Execute Plan 01-02 (scheduler + container + Dockerfile + compose.yaml)
+- [ ] Execute Plan 02-02 (alembic bootstrap, run_migrations, repos, scheduler wiring)
 - [ ] Confirm `.planning/intel/` directory exists (will be created during Phase 3 gate)
 
 ### Blockers
 
-- currently.
-- Plan 01-02 checkpoint pending — operator must execute 11-step docker compose smoke
+- None for Plan 02-02.
+- Plan 01-02 checkpoint (11-step docker compose smoke) still pending operator sign-off — does not block Plan 02-02 development.
 
 ## Session Continuity
 
-- **Last session:** 2026-04-12T20:45:29.932Z
-- **Last action:** Plan 01-01 executed: scaffold, Settings, logging, ids, killswitch — 53 tests green.
-- **Stopped At:** Awaiting operator docker compose smoke (Plan 01-02 checkpoint, 11 steps)
-- **Next action:** Execute Plan 01-02 (scheduler, Dockerfile, compose.yaml) — fills the three red-stub test files.
-- **Resume command:** `/gsd-execute-phase 01`
+- **Last session:** 2026-04-13T12:19:56.092Z
+- **Last action:** Plan 02-01 executed: db package (base, hashing, session, models), integration conftest with transactional-rollback fixture, red stubs for Plan 02-02 — 94 unit tests + 2 integration tests green.
+- **Stopped At:** Completed 02-01-PLAN.md
+- **Next action:** Execute Plan 02-02 (alembic tree, run_migrations, repos, scheduler.run_cycle wiring).
+- **Resume command:** `/gsd-execute-phase 02`
 
 ---
 *STATE.md is the single source of truth for "where are we right now." Updated at phase transitions and plan completion.*
