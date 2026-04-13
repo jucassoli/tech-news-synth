@@ -178,9 +178,7 @@ class SourceState(Base):
     name: Mapped[str] = mapped_column(Text, primary_key=True)
     etag: Mapped[str | None] = mapped_column(Text)
     last_modified: Mapped[str | None] = mapped_column(Text)
-    consecutive_failures: Mapped[int] = mapped_column(
-        Integer, nullable=False, server_default="0"
-    )
+    consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_status: Mapped[str | None] = mapped_column(Text)

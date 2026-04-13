@@ -64,7 +64,9 @@ def test_mark_ok_resets_counter_and_sets_metadata(db_session):
     assert get_state(db_session, "ars_technica").consecutive_failures == 1
 
     before = datetime.now(UTC)
-    mark_ok(db_session, "ars_technica", etag='W/"abc"', last_modified="Mon, 13 Apr 2026 10:00:00 GMT")
+    mark_ok(
+        db_session, "ars_technica", etag='W/"abc"', last_modified="Mon, 13 Apr 2026 10:00:00 GMT"
+    )
     after = datetime.now(UTC)
 
     row = get_state(db_session, "ars_technica")
@@ -138,8 +140,8 @@ def test_migration_autogenerate_clean(engine):
     from alembic.autogenerate import compare_metadata
     from alembic.migration import MigrationContext
 
-    from tech_news_synth.db.base import Base
     import tech_news_synth.db.models  # noqa: F401 — register models
+    from tech_news_synth.db.base import Base
 
     with engine.connect() as conn:
         mc = MigrationContext.configure(conn)

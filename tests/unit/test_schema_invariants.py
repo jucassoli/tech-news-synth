@@ -10,7 +10,7 @@ import sqlalchemy as sa
 import tech_news_synth.db.models  # noqa: F401 — register models on Base.metadata
 from tech_news_synth.db.base import Base
 
-EXPECTED_TABLES = {"articles", "clusters", "posts", "run_log"}
+EXPECTED_TABLES = {"articles", "clusters", "posts", "run_log", "source_state"}
 
 
 def test_tables_present() -> None:

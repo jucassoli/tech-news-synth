@@ -18,20 +18,14 @@ from tech_news_synth.db.models import SourceState
 
 def upsert_source(session: Session, name: str) -> None:
     """Insert a source_state row if absent; no-op on conflict (idempotent)."""
-    stmt = (
-        pg_insert(SourceState)
-        .values(name=name)
-        .on_conflict_do_nothing(index_elements=["name"])
-    )
+    stmt = pg_insert(SourceState).values(name=name).on_conflict_do_nothing(index_elements=["name"])
     session.execute(stmt)
     session.flush()
 
 
 def get_state(session: Session, name: str) -> SourceState | None:
     """Return the SourceState row for ``name`` or None."""
-    return session.execute(
-        select(SourceState).where(SourceState.name == name)
-    ).scalar_one_or_none()
+    return session.execute(select(SourceState).where(SourceState.name == name)).scalar_one_or_none()
 
 
 def mark_ok(

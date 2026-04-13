@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 import yaml
 from pydantic import BaseModel, Field, HttpUrl, ValidationError, model_validator
@@ -19,9 +19,7 @@ from pydantic import BaseModel, Field, HttpUrl, ValidationError, model_validator
 class _SourceBase(BaseModel):
     """Common fields for every source type."""
 
-    name: str = Field(
-        min_length=1, max_length=64, pattern=r"^[a-z][a-z0-9_]*$"
-    )
+    name: str = Field(min_length=1, max_length=64, pattern=r"^[a-z][a-z0-9_]*$")
     url: HttpUrl
     max_articles_per_fetch: int | None = Field(default=None, ge=1, le=200)
 
@@ -42,7 +40,7 @@ class RedditJsonSource(_SourceBase):
 
 
 Source = Annotated[
-    Union[RssSource, HnFirebaseSource, RedditJsonSource],
+    RssSource | HnFirebaseSource | RedditJsonSource,
     Field(discriminator="type"),
 ]
 
@@ -55,7 +53,7 @@ class SourcesConfig(BaseModel):
     sources: list[Source] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _check_unique_names(self) -> "SourcesConfig":
+    def _check_unique_names(self) -> SourcesConfig:
         seen: set[str] = set()
         for s in self.sources:
             if s.name in seen:
