@@ -28,7 +28,7 @@ import argparse
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import requests
 import tweepy
@@ -74,7 +74,7 @@ def main() -> None:
     settings = load_settings()
 
     # D-04: fixed harmless body; only the UTC ISO timestamp is interpolated.
-    utc_iso = datetime.now(timezone.utc).isoformat()
+    utc_iso = datetime.now(UTC).isoformat()
     body = (
         f"[gate-smoke {utc_iso}] validating API access — "
         f"this will be deleted within 60s"
@@ -96,7 +96,7 @@ def main() -> None:
     )
 
     # --- POST ---
-    posted_at = datetime.now(timezone.utc)
+    posted_at = datetime.now(UTC)
     start = time.monotonic()
     r = client.create_tweet(text=body)
     elapsed_ms = int((time.monotonic() - start) * 1000)
@@ -108,7 +108,7 @@ def main() -> None:
     # --- DELETE (D-05: no retries; loud manual-cleanup signal on failure) ---
     try:
         client.delete_tweet(tweet_id)
-        deleted_at = datetime.now(timezone.utc)
+        deleted_at = datetime.now(UTC)
     except Exception as e:
         print(
             f"MANUAL CLEANUP REQUIRED: tweet_id={tweet_id} — "
