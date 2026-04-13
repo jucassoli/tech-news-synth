@@ -98,6 +98,59 @@ def test_cycle_skipped_when_paused(
     assert not any(ln.get("event") == "cycle_end" for ln in lines)
 
 
+def test_run_cycle_writes_run_log_on_success(settings: Settings, mock_db_in_scheduler) -> None:
+    """STORE-05: run_cycle calls start_cycle + finish_cycle(status='ok') and
+    closes the session on success."""
+    session_factory, session, start, finish = mock_db_in_scheduler
+
+    run_cycle(settings)
+
+    session_factory.assert_called_once()
+    start.assert_called_once()
+    finish.assert_called_once()
+    # finish_cycle invoked with status='ok' for a clean cycle.
+    _, finish_kwargs = finish.call_args
+    assert finish_kwargs.get("status") == "ok"
+    # Session committed twice (start + finish) and closed once.
+    assert session.commit.call_count == 2
+    session.close.assert_called_once()
+
+
+def test_run_cycle_writes_run_log_on_error(
+    settings: Settings, mock_db_in_scheduler, monkeypatch
+) -> None:
+    """STORE-05 + INFRA-08: even when body raises, finish_cycle must run with
+    status='error' and the session must close."""
+
+    def _boom(_settings: Settings) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(scheduler_mod, "_run_cycle_body", _boom)
+    _, session, start, finish = mock_db_in_scheduler
+
+    run_cycle(settings)  # must not propagate
+
+    start.assert_called_once()
+    finish.assert_called_once()
+    _, finish_kwargs = finish.call_args
+    assert finish_kwargs.get("status") == "error"
+    session.close.assert_called_once()
+
+
+def test_run_cycle_skips_run_log_when_paused(
+    settings: Settings, monkeypatch, mock_db_in_scheduler
+) -> None:
+    """INFRA-09: paused cycles perform zero I/O — no SessionLocal, no run_log."""
+    monkeypatch.setattr(scheduler_mod, "is_paused", lambda s: (True, "env"))
+    session_factory, _, start, finish = mock_db_in_scheduler
+
+    run_cycle(settings)
+
+    session_factory.assert_not_called()
+    start.assert_not_called()
+    finish.assert_not_called()
+
+
 def test_contextvars_bound_and_cleared(
     monkeypatch_env, monkeypatch, capture_logs: io.StringIO
 ) -> None:

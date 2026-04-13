@@ -17,7 +17,19 @@ from pydantic import ValidationError
 
 
 def _dispatch_scheduler() -> int:
+    """Boot order (D-01):
+
+    1. ``load_settings`` — fail-fast on bad config (no logging yet, stderr only).
+    2. ``configure_logging`` — installs JSON pipeline so subsequent steps log.
+    3. ``init_engine`` — module-level engine + SessionLocal singleton.
+    4. ``run_migrations`` — ``alembic upgrade head`` (D-01; raises on failure
+       so the container exits non-zero).
+    5. ``scheduler.run`` — installs signal handlers and blocks.
+    """
     from tech_news_synth.config import load_settings
+    from tech_news_synth.db.migrations import run_migrations
+    from tech_news_synth.db.session import init_engine
+    from tech_news_synth.logging import configure_logging
     from tech_news_synth.scheduler import run
 
     try:
@@ -26,6 +38,9 @@ def _dispatch_scheduler() -> int:
         print(f"Configuration error:\n{e}", file=sys.stderr)
         return 2
 
+    configure_logging(settings)
+    init_engine(settings)
+    run_migrations()
     run(settings)
     return 0
 

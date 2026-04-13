@@ -56,6 +56,8 @@ markers = ["integration: requires live postgres"]
 target-version = "py312"
 line-length = 100
 src = ["src", "tests"]
+# Alembic auto-generates version files in its own style; don't lint them.
+extend-exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "DTZ", "RUF"]

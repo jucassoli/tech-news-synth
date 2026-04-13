@@ -23,9 +23,11 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
+from tech_news_synth.db.run_log import finish_cycle, start_cycle
+from tech_news_synth.db.session import SessionLocal
 from tech_news_synth.ids import new_cycle_id
 from tech_news_synth.killswitch import is_paused
-from tech_news_synth.logging import configure_logging, get_logger
+from tech_news_synth.logging import get_logger
 
 if TYPE_CHECKING:
     from tech_news_synth.config import Settings
@@ -47,29 +49,51 @@ def run_cycle(settings: Settings) -> None:
 
     Invariants:
       - Kill-switch checked first; when paused emits exactly one ``cycle_skipped``
-        log line and performs zero other I/O (INFRA-09 / D-08).
+        log line and performs ZERO other I/O — including no run_log row
+        (INFRA-09 / D-08).
       - Binds ``cycle_id`` (ULID) + ``dry_run`` to structlog contextvars before
         any downstream log line (INFRA-07 / INFRA-10 / D-09 / D-10).
+      - On non-paused cycles, opens a Session, writes a ``run_log`` row at
+        start (status='running'), runs the body, and updates the row on
+        ``finally`` with final status (STORE-05).
       - Clears contextvars in ``finally`` so shutdown / next-cycle lines don't
         carry stale values (T-02-03).
     """
     cycle_id = new_cycle_id()
     bind_contextvars(cycle_id=cycle_id, dry_run=bool(settings.dry_run))
+    session = None
+    status = "error"
     try:
         paused, reason = is_paused(settings)
         if paused:
             log.info("cycle_skipped", status="paused", paused_by=reason)
-            return
+            return  # INFRA-09: no run_log row when paused.
+
+        # Open session + write run_log start row (STORE-05).
+        session = SessionLocal()
+        start_cycle(session, cycle_id)
+        session.commit()
 
         log.info("cycle_start", interval_hours=settings.interval_hours)
         try:
             _run_cycle_body(settings)
+            status = "ok"
         except Exception:
             # INFRA-08: never propagate; log full stacktrace.
             log.exception("cycle_error")
+            status = "error"
             return
-        log.info("cycle_end", status="ok")
+        log.info("cycle_end", status=status)
     finally:
+        if session is not None:
+            try:
+                finish_cycle(session, cycle_id, status=status, counts={})
+                session.commit()
+            except Exception:
+                log.exception("run_log_finish_failed")
+                session.rollback()
+            finally:
+                session.close()
         clear_contextvars()
 
 
@@ -122,8 +146,12 @@ def _install_signal_handlers(scheduler: BlockingScheduler) -> None:
 
 
 def run(settings: Settings) -> None:
-    """Entrypoint invoked by ``__main__.py`` when no subcommand is given."""
-    configure_logging(settings)
+    """Entrypoint invoked by ``__main__.py`` when no subcommand is given.
+
+    NOTE: ``configure_logging`` and ``init_engine`` are now called by
+    ``__main__._dispatch_scheduler`` BEFORE this function so alembic + DB
+    bootstrap flow through the JSON pipeline (D-01).
+    """
     scheduler = build_scheduler(settings)
     _install_signal_handlers(scheduler)
     log.info(
