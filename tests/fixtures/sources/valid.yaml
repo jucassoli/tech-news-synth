@@ -1,0 +1,8 @@
+max_articles_per_fetch: 30
+max_article_age_hours: 24
+sources:
+  - {name: techcrunch, type: rss, url: https://techcrunch.com/feed/, timeout_sec: 20}
+  - {name: verge, type: rss, url: https://www.theverge.com/rss/index.xml, timeout_sec: 20}
+  - {name: ars_technica, type: rss, url: https://feeds.arstechnica.com/arstechnica/index, timeout_sec: 20}
+  - {name: hacker_news, type: hn_firebase, url: https://hacker-news.firebaseio.com/v0, timeout_sec: 15}
+  - {name: reddit_technology, type: reddit_json, url: https://www.reddit.com/r/technology/.json, timeout_sec: 15}

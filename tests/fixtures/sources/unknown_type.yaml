@@ -1,0 +1,4 @@
+max_articles_per_fetch: 30
+max_article_age_hours: 24
+sources:
+  - {name: techcrunch, type: not_a_real_type, url: https://techcrunch.com/feed/, timeout_sec: 20}

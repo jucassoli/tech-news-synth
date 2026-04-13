@@ -1,0 +1,61 @@
+{
+  "kind": "Listing",
+  "data": {
+    "after": "t3_abc",
+    "before": null,
+    "children": [
+      {
+        "kind": "t3",
+        "data": {
+          "id": "abc001",
+          "title": "Megathread: AI ethics roundup",
+          "url": "https://www.reddit.com/r/technology/comments/abc001/megathread/",
+          "created_utc": 1776095000,
+          "selftext": "Weekly megathread",
+          "stickied": true,
+          "is_self": true,
+          "permalink": "/r/technology/comments/abc001/megathread/"
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "abc002",
+          "title": "New EU AI Act ruling affects open-source models",
+          "url": "https://www.eu-observer.example.com/ai-act-oss",
+          "created_utc": 1776094000,
+          "selftext": "",
+          "stickied": false,
+          "is_self": false,
+          "permalink": "/r/technology/comments/abc002/new_eu_ai_act/"
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "abc003",
+          "title": "What's your experience with self-hosted LLMs?",
+          "url": "https://www.reddit.com/r/technology/comments/abc003/selfhosted_llms/",
+          "created_utc": 1776093000,
+          "selftext": "I've been running llama.cpp on a Mac Mini and want to hear others' setups.",
+          "stickied": false,
+          "is_self": true,
+          "permalink": "/r/technology/comments/abc003/selfhosted_llms/"
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "abc004",
+          "title": "Intel layoffs hit 15,000 employees",
+          "url": "https://www.reuters.example.com/intel-layoffs-2026",
+          "created_utc": 1776092000,
+          "selftext": "",
+          "stickied": false,
+          "is_self": false,
+          "permalink": "/r/technology/comments/abc004/intel_layoffs/"
+        }
+      }
+    ]
+  }
+}

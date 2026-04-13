@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>The Verge</title>
+  <link href="https://www.theverge.com/" rel="alternate"/>
+  <link href="https://www.theverge.com/rss/index.xml" rel="self"/>
+  <id>https://www.theverge.com/rss/index.xml</id>
+  <updated>2026-04-13T12:00:00Z</updated>
+  <entry>
+    <title>Tesla unveils next-gen Autopilot hardware</title>
+    <link href="https://www.theverge.com/2026/04/13/tesla-autopilot-hardware"/>
+    <id>https://www.theverge.com/2026/04/13/tesla-autopilot-hardware</id>
+    <published>2026-04-13T11:00:00Z</published>
+    <updated>2026-04-13T11:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Tesla showed off its <strong>next-gen</strong> hardware at a San Francisco event.<script>pwn()</script></p>]]></summary>
+    <author><name>Sam Ng</name></author>
+  </entry>
+  <entry>
+    <title>Microsoft retires Windows 10 support</title>
+    <link href="https://www.theverge.com/2026/04/13/windows-10-retirement"/>
+    <id>https://www.theverge.com/2026/04/13/windows-10-retirement</id>
+    <published>2026-04-13T10:30:00Z</published>
+    <updated>2026-04-13T10:30:00Z</updated>
+    <summary type="html"><![CDATA[<p>Microsoft officially ended Windows 10 support.</p>]]></summary>
+    <author><name>Ellen Ho</name></author>
+  </entry>
+  <entry>
+    <title>Nintendo Switch 2 sells 5M units</title>
+    <link href="https://www.theverge.com/2026/04/13/switch-2-sales"/>
+    <id>https://www.theverge.com/2026/04/13/switch-2-sales</id>
+    <published>2026-04-13T09:15:00Z</published>
+    <updated>2026-04-13T09:15:00Z</updated>
+    <summary type="html"><![CDATA[<p>The Switch 2 hit five million units sold.</p>]]></summary>
+    <author><name>Kai Tanaka</name></author>
+  </entry>
+  <entry>
+    <title>Spotify tests AI playlist generator</title>
+    <link href="https://www.theverge.com/2026/04/13/spotify-ai-playlist"/>
+    <id>https://www.theverge.com/2026/04/13/spotify-ai-playlist</id>
+    <published>2026-04-13T08:00:00Z</published>
+    <updated>2026-04-13T08:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>Spotify opened a beta for AI-generated playlists.</p>]]></summary>
+    <author><name>Rita Green</name></author>
+  </entry>
+  <entry>
+    <title>Twitter/X rolls out long-form video</title>
+    <link href="https://www.theverge.com/2026/04/13/x-long-form-video"/>
+    <id>https://www.theverge.com/2026/04/13/x-long-form-video</id>
+    <published>2026-04-13T07:00:00Z</published>
+    <updated>2026-04-13T07:00:00Z</updated>
+    <summary type="html"><![CDATA[<p>X launched long-form video uploads.</p>]]></summary>
+    <author><name>Dan Kim</name></author>
+  </entry>
+</feed>

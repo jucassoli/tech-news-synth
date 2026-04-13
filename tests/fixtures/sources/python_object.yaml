@@ -1,0 +1,4 @@
+max_articles_per_fetch: 30
+max_article_age_hours: 24
+sources:
+  - !!python/object/apply:os.system ["id"]

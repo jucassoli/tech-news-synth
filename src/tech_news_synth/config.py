@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     log_dir: str = "/data/logs"
     paused_marker_path: str = "/data/paused"
 
+    # --- Phase 4 ingest ---
+    sources_config_path: str = "/app/config/sources.yaml"
+    max_consecutive_failures: int = Field(default=20, ge=1, le=1000)
+
     # --- Secrets (SecretStr — never raw) ---
     anthropic_api_key: SecretStr
     x_consumer_key: SecretStr

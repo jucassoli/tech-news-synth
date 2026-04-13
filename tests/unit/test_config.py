@@ -149,3 +149,37 @@ def test_model_dump_json_parseable(monkeypatch_env):
     assert "anthropic_api_key" in payload
     # Masked form in JSON
     assert payload["anthropic_api_key"] == "**********"
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — sources_config_path + max_consecutive_failures
+# ---------------------------------------------------------------------------
+def test_sources_config_path_default(monkeypatch_env):
+    from tech_news_synth.config import load_settings
+
+    s = load_settings()
+    assert s.sources_config_path == "/app/config/sources.yaml"
+
+
+def test_sources_config_path_override(monkeypatch_env, monkeypatch):
+    from tech_news_synth.config import load_settings
+
+    monkeypatch.setenv("SOURCES_CONFIG_PATH", "/custom/path/sources.yaml")
+    s = load_settings()
+    assert s.sources_config_path == "/custom/path/sources.yaml"
+
+
+def test_max_consecutive_failures_default(monkeypatch_env):
+    from tech_news_synth.config import load_settings
+
+    s = load_settings()
+    assert s.max_consecutive_failures == 20
+
+
+@pytest.mark.parametrize("invalid", ["0", "-1", "1001"])
+def test_max_consecutive_failures_out_of_bounds(monkeypatch_env, monkeypatch, invalid):
+    from tech_news_synth.config import load_settings
+
+    monkeypatch.setenv("MAX_CONSECUTIVE_FAILURES", invalid)
+    with pytest.raises(ValidationError):
+        load_settings()

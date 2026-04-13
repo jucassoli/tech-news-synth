@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Ars Technica</title>
+    <link>https://arstechnica.com/</link>
+    <description>Serving the Technologist for more than a decade.</description>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 13 Apr 2026 12:00:00 +0000</lastBuildDate>
+    <item>
+      <title>Linux kernel 6.15 released with Rust enhancements</title>
+      <link>https://arstechnica.com/2026/04/13/linux-6-15-rust/</link>
+      <description><![CDATA[<p>The Linux kernel team <em>released</em> 6.15 featuring Rust driver improvements.<script>x=1</script></p>]]></description>
+      <content:encoded><![CDATA[<p>Full story: The Linux kernel team released 6.15 with major Rust improvements.</p>]]></content:encoded>
+      <pubDate>Mon, 13 Apr 2026 11:45:00 +0000</pubDate>
+      <guid isPermaLink="true">https://arstechnica.com/2026/04/13/linux-6-15-rust/</guid>
+    </item>
+    <item>
+      <title>AMD Ryzen 9000 benchmarks surface</title>
+      <link>https://arstechnica.com/2026/04/13/ryzen-9000-benchmarks/</link>
+      <description><![CDATA[<p>Early AMD Ryzen 9000 benchmarks leaked.</p>]]></description>
+      <pubDate>Mon, 13 Apr 2026 10:30:00 +0000</pubDate>
+      <guid isPermaLink="true">https://arstechnica.com/2026/04/13/ryzen-9000-benchmarks/</guid>
+    </item>
+    <item>
+      <title>NASA Artemis 3 slips to 2027</title>
+      <link>https://arstechnica.com/2026/04/13/artemis-3-delay/</link>
+      <description><![CDATA[<p>NASA confirmed Artemis 3 has slipped.</p>]]></description>
+      <pubDate>Mon, 13 Apr 2026 09:45:00 +0000</pubDate>
+      <guid isPermaLink="true">https://arstechnica.com/2026/04/13/artemis-3-delay/</guid>
+    </item>
+    <item>
+      <title>Firefox 130 enables tab groups</title>
+      <link>https://arstechnica.com/2026/04/13/firefox-130-tab-groups/</link>
+      <description><![CDATA[<p>Mozilla enabled tab groups by default in Firefox 130.</p>]]></description>
+      <pubDate>Mon, 13 Apr 2026 08:30:00 +0000</pubDate>
+      <guid isPermaLink="true">https://arstechnica.com/2026/04/13/firefox-130-tab-groups/</guid>
+    </item>
+    <item>
+      <title>Quantum computing startup claims 1000-qubit chip</title>
+      <link>https://arstechnica.com/2026/04/13/quantum-1000-qubit/</link>
+      <description><![CDATA[<p>A quantum startup claims a 1000-qubit chip — experts are skeptical.</p>]]></description>
+      <pubDate>Mon, 13 Apr 2026 07:15:00 +0000</pubDate>
+      <guid isPermaLink="true">https://arstechnica.com/2026/04/13/quantum-1000-qubit/</guid>
+    </item>
+  </channel>
+</rss>

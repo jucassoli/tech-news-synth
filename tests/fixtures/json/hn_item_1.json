@@ -1,0 +1,10 @@
+{
+  "id": 39000001,
+  "type": "story",
+  "title": "Rust 1.80 stabilizes async closures",
+  "url": "https://blog.rust-lang.org/2026/04/13/Rust-1.80.0.html",
+  "time": 1776095400,
+  "by": "rustacean",
+  "score": 420,
+  "descendants": 87
+}
