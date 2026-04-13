@@ -36,6 +36,11 @@ WORKDIR /app
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 COPY --from=builder --chown=app:app /app/src /app/src
 
+# Alembic config + versions tree (Plan 02-02). run_migrations() at boot
+# loads /app/alembic.ini and finds /app/alembic/versions/*.py.
+COPY --chown=app:app alembic.ini /app/alembic.ini
+COPY --chown=app:app alembic /app/alembic
+
 # Data directory for logs + paused marker (volume mount target).
 RUN mkdir -p /data/logs /app/config \
  && chown -R app:app /data /app
