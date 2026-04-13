@@ -69,7 +69,10 @@ Plans:
   3. Simulating a 5xx or timeout on one source logs a structured warning, skips that source, and lets the cycle complete with the remaining sources' articles upserted to the DB
   4. A second cycle against unchanged feeds sends `If-None-Match` / `If-Modified-Since` from stored ETag/Last-Modified and processes zero new rows (conditional GET works)
   5. Each persisted article exposes `id`, `source`, `url`, `canonical_url`, `title`, HTML-stripped `summary`, UTC-aware `published_at`, `fetched_at`, and `article_hash`; a source with 20 consecutive failures is auto-disabled and re-enabled only via CLI
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 04-01-PLAN.md — Scaffolding: pyyaml dep, ingest package tree, sources.yaml + fixtures, pydantic discriminated-union loader, ArticleRow + normalize, shared httpx.Client + tenacity helper, SourceState ORM + Alembic migration + repo helpers
+- [ ] 04-02-PLAN.md — Fetchers (RSS/HN/Reddit) + registry, orchestrator with per-source isolation + cycle-start auto-disable + counts, Settings/scheduler/__main__ wiring, compose smoke checkpoint
 
 ### Phase 5: Cluster + Rank
 **Goal**: A deterministic, pure-core clustering + ranking module that picks the cycle's winning topic, enforces 48h semantic anti-repetition, and always has a fallback so cadence holds
