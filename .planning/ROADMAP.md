@@ -84,7 +84,10 @@ Plans:
   3. A fixture post from <48h ago with centroid cosine ≥ 0.5 to the current winner causes the winner to be rejected and the next-best cluster selected (semantic, not lexical, anti-repeat)
   4. On a "slow news day" fixture where no cluster meets threshold, the fallback picker returns a single best-ranked article so the cycle still has something to publish (cadence > strict threshold, per Core Value)
   5. Every cycle persists a `clusters` audit trail: which cluster won, scores for all candidates, and which were rejected by the anti-repeat filter — queryable for operator inspection
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 05-01-PLAN.md — Pure-core cluster toolkit: Settings + sources.yaml `weight` field, cluster/ package (preprocess with P-1 stopword fix, vectorize, agglomerative cluster, rank, antirepeat, fallback), SelectionResult model, fixtures + unit tests
+- [ ] 05-02-PLAN.md — DB helpers (window, past-posts, chosen flag), run_clustering orchestrator (persist-all-first audit, anti-repeat walk, fallback), scheduler wiring with merged counts, integration tests + compose smoke checkpoint
 
 ### Phase 6: Synthesis
 **Goal**: Turn the winning cluster into a grounded PT-BR post that provably fits inside the X char budget, with cost and token usage logged per call
