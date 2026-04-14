@@ -61,6 +61,41 @@ def _run_cycle_body(settings: Settings) -> None:
     return None
 
 
+def _emit_cycle_summary(
+    cycle_id: str,
+    status: str,
+    counts: dict[str, object],
+    settings: Settings,
+    started_at: datetime,
+) -> None:
+    """Phase 8 OPS-01 / D-04/D-05/D-06: emit ONE aggregated ``cycle_summary``
+    event per non-paused cycle, AFTER ``session.commit()`` succeeds.
+
+    Durability invariant (Pitfall 1): if this line appears in logs, the
+    corresponding ``run_log`` row was committed. Conversely, commit failure
+    skips the emit.
+
+    All 10 D-06 fields are populated (null on no-synth paths). Never raises —
+    structlog swallows formatting errors; callers rely on the invariant that
+    this helper does not propagate exceptions to the caller's finally block.
+    """
+    duration_ms = int((datetime.now(UTC) - started_at).total_seconds() * 1000)
+    post_status = counts.get("publish_status") or "empty"
+    log.info(
+        "cycle_summary",
+        cycle_id=cycle_id,
+        duration_ms=duration_ms,
+        articles_fetched_per_source=counts.get("articles_fetched", {}),
+        cluster_count=counts.get("cluster_count"),
+        chosen_cluster_id=counts.get("chosen_cluster_id"),
+        char_budget_used=counts.get("char_budget_used"),
+        token_cost_usd=counts.get("synth_cost_usd"),
+        post_status=post_status,
+        status=status,
+        dry_run=bool(settings.dry_run),
+    )
+
+
 def run_cycle(
     settings: Settings,
     sources_config: SourcesConfig | None = None,
@@ -80,6 +115,7 @@ def run_cycle(
       - Clears contextvars in ``finally`` so shutdown / next-cycle lines don't
         carry stale values (T-02-03).
     """
+    cycle_started_at = datetime.now(UTC)  # Phase 8 OPS-01: captured BEFORE any I/O.
     cycle_id = new_cycle_id()
     bind_contextvars(cycle_id=cycle_id, dry_run=bool(settings.dry_run))
     session = None
@@ -184,6 +220,11 @@ def run_cycle(
             try:
                 finish_cycle(session, cycle_id, status=status, counts=counts)
                 session.commit()
+                # Phase 8 OPS-01 / D-04: emit AFTER commit succeeds. Durability
+                # invariant — if this line appears, the run_log row is durable.
+                # On commit failure the except branch below takes over and this
+                # emit is skipped.
+                _emit_cycle_summary(cycle_id, status, counts, settings, cycle_started_at)
             except Exception:
                 log.exception("run_log_finish_failed")
                 session.rollback()
