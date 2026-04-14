@@ -22,6 +22,9 @@ class _SourceBase(BaseModel):
     name: str = Field(min_length=1, max_length=64, pattern=r"^[a-z][a-z0-9_]*$")
     url: HttpUrl
     max_articles_per_fetch: int | None = Field(default=None, ge=1, le=200)
+    # Phase 5 D-04/D-05: per-source weight for cluster ranking + fallback tiebreak.
+    # Default 1.0 preserves backward compat with existing sources.yaml.
+    weight: float = Field(default=1.0, ge=0.0, le=10.0)
 
 
 class RssSource(_SourceBase):

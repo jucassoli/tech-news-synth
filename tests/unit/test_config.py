@@ -183,3 +183,37 @@ def test_max_consecutive_failures_out_of_bounds(monkeypatch_env, monkeypatch, in
     monkeypatch.setenv("MAX_CONSECUTIVE_FAILURES", invalid)
     with pytest.raises(ValidationError):
         load_settings()
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — clustering settings (D-15)
+# ---------------------------------------------------------------------------
+def test_cluster_settings_defaults(monkeypatch_env):
+    from tech_news_synth.config import load_settings
+
+    s = load_settings()
+    assert s.cluster_window_hours == 6
+    assert s.cluster_distance_threshold == 0.35
+    assert s.anti_repeat_cosine_threshold == 0.5
+    assert s.anti_repeat_window_hours == 48
+
+
+@pytest.mark.parametrize(
+    "env_var,bad_value",
+    [
+        ("CLUSTER_WINDOW_HOURS", "0"),
+        ("CLUSTER_WINDOW_HOURS", "73"),
+        ("CLUSTER_DISTANCE_THRESHOLD", "-0.1"),
+        ("CLUSTER_DISTANCE_THRESHOLD", "1.1"),
+        ("ANTI_REPEAT_COSINE_THRESHOLD", "-0.1"),
+        ("ANTI_REPEAT_COSINE_THRESHOLD", "1.5"),
+        ("ANTI_REPEAT_WINDOW_HOURS", "0"),
+        ("ANTI_REPEAT_WINDOW_HOURS", "169"),
+    ],
+)
+def test_cluster_settings_rejects_invalid(monkeypatch_env, monkeypatch, env_var, bad_value):
+    from tech_news_synth.config import load_settings
+
+    monkeypatch.setenv(env_var, bad_value)
+    with pytest.raises(ValidationError):
+        load_settings()

@@ -110,3 +110,43 @@ sources:
     assert by_name["rss_src"].timeout_sec == 20.0
     assert by_name["hn_src"].timeout_sec == 15.0
     assert by_name["reddit_src"].timeout_sec == 15.0
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — per-source `weight` field (D-04/D-05)
+# ---------------------------------------------------------------------------
+def test_weight_default_preserves_backward_compat():
+    """Existing yaml without `weight` must load; all sources default to 1.0."""
+    cfg = load_sources_config(FIXTURES / "valid.yaml")
+    for s in cfg.sources:
+        assert s.weight == 1.0
+
+
+def test_weight_custom_value_loads(tmp_path: Path):
+    content = """
+max_articles_per_fetch: 30
+max_article_age_hours: 24
+sources:
+  - {name: rss_src, type: rss, url: https://example.com/feed, weight: 2.5}
+  - {name: hn_src, type: hn_firebase, url: https://hacker-news.firebaseio.com/v0}
+"""
+    p = tmp_path / "weights.yaml"
+    p.write_text(content)
+    cfg = load_sources_config(p)
+    by_name = {s.name: s for s in cfg.sources}
+    assert by_name["rss_src"].weight == 2.5
+    assert by_name["hn_src"].weight == 1.0
+
+
+@pytest.mark.parametrize("bad_weight", [-0.5, 11.0, 100.0])
+def test_weight_out_of_bounds_rejected(tmp_path: Path, bad_weight):
+    content = f"""
+max_articles_per_fetch: 30
+max_article_age_hours: 24
+sources:
+  - {{name: rss_src, type: rss, url: https://example.com/feed, weight: {bad_weight}}}
+"""
+    p = tmp_path / "bad_weight.yaml"
+    p.write_text(content)
+    with pytest.raises(ValidationError):
+        load_sources_config(p)

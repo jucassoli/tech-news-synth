@@ -1,0 +1,40 @@
+{
+  "current_articles": [
+    {"id": 1, "source": "techcrunch", "title": "Intel to spin off foundry business",
+     "summary": "Intel announced plans to spin off its foundry business into a separate company.",
+     "published_at": "2026-04-12T09:00:00+00:00", "weight": 1.0},
+    {"id": 2, "source": "verge", "title": "Intel foundry spinoff details emerge",
+     "summary": "Details emerge on Intel's plan to separate its foundry unit into an independent chipmaker.",
+     "published_at": "2026-04-12T09:10:00+00:00", "weight": 1.0},
+    {"id": 3, "source": "ars_technica", "title": "Chipmaker Intel separates foundry arm",
+     "summary": "Intel formally separates its foundry arm, creating a standalone chip manufacturing entity.",
+     "published_at": "2026-04-12T09:20:00+00:00", "weight": 1.0},
+    {"id": 4, "source": "hacker_news", "title": "Intel foundry to become independent",
+     "summary": "Intel's foundry business is set to become an independent company after board approval.",
+     "published_at": "2026-04-12T09:30:00+00:00", "weight": 1.0},
+
+    {"id": 5, "source": "reddit_technology", "title": "New Rust async runtime benchmarks",
+     "summary": "Benchmarks compare the latest Rust async runtimes across workloads.",
+     "published_at": "2026-04-12T09:40:00+00:00", "weight": 1.0},
+    {"id": 6, "source": "techcrunch", "title": "Slack adds new workflow automation",
+     "summary": "Slack released new workflow automation features for teams.",
+     "published_at": "2026-04-12T09:45:00+00:00", "weight": 1.0},
+    {"id": 7, "source": "verge", "title": "GitHub Copilot gains enterprise controls",
+     "summary": "GitHub Copilot adds fine-grained admin controls for enterprise customers.",
+     "published_at": "2026-04-12T09:50:00+00:00", "weight": 1.0},
+    {"id": 8, "source": "ars_technica", "title": "Docker Desktop releases 4.40",
+     "summary": "Docker Desktop 4.40 improves WSL integration and virtualization performance.",
+     "published_at": "2026-04-12T09:55:00+00:00", "weight": 1.0}
+  ],
+  "past_posts": [
+    {
+      "post_id": 101,
+      "posted_hours_ago": 30,
+      "source_texts": [
+        "Intel to spin off foundry business into separate company",
+        "Intel foundry IPO details emerge as chipmaker plans split",
+        "Chipmaker Intel separates foundry unit into standalone entity"
+      ]
+    }
+  ]
+}

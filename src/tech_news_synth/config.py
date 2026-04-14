@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     sources_config_path: str = "/app/config/sources.yaml"
     max_consecutive_failures: int = Field(default=20, ge=1, le=1000)
 
+    # --- Phase 5 clustering (D-15) ---
+    cluster_window_hours: int = Field(default=6, ge=1, le=72)
+    cluster_distance_threshold: float = Field(default=0.35, ge=0.0, le=1.0)
+    anti_repeat_cosine_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    anti_repeat_window_hours: int = Field(default=48, ge=1, le=168)
+
     # --- Secrets (SecretStr — never raw) ---
     anthropic_api_key: SecretStr
     x_consumer_key: SecretStr

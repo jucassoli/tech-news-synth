@@ -1,0 +1,20 @@
+[
+  {"id": 1, "source": "techcrunch", "title": "Quantum computing milestone at IBM lab",
+   "summary": "IBM researchers reached a new error-correction milestone on their superconducting qubit stack.",
+   "published_at": "2026-04-12T08:00:00+00:00", "weight": 1.0},
+  {"id": 2, "source": "verge", "title": "AWS sofre grande queda na região us-east-1",
+   "summary": "AWS registrou falha prolongada em us-east-1 afetando diversos serviços populares.",
+   "published_at": "2026-04-12T08:15:00+00:00", "weight": 1.0},
+  {"id": 3, "source": "ars_technica", "title": "Rust 1.95 release notes posted",
+   "summary": "Rust 1.95 ships with trait solver improvements and async closure stabilization.",
+   "published_at": "2026-04-12T08:30:00+00:00", "weight": 1.0},
+  {"id": 4, "source": "hacker_news", "title": "Meta announces workforce reductions",
+   "summary": "Meta disclosed a new round of layoffs affecting hardware divisions primarily.",
+   "published_at": "2026-04-12T08:45:00+00:00", "weight": 1.0},
+  {"id": 5, "source": "reddit_technology", "title": "SpaceX Starship completes orbital test",
+   "summary": "SpaceX Starship finished a full orbital test flight with successful re-entry burn.",
+   "published_at": "2026-04-12T09:00:00+00:00", "weight": 1.0},
+  {"id": 6, "source": "techcrunch", "title": "Ubuntu 26.04 LTS beta disponível",
+   "summary": "Canonical publicou a beta do Ubuntu 26.04 LTS com kernel 6.12 e GNOME atualizado.",
+   "published_at": "2026-04-12T09:15:00+00:00", "weight": 1.0}
+]
