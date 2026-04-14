@@ -20,8 +20,8 @@ Given a cutover timestamp via ``--since``, computes three invariants:
 
 3. **Cost envelope (24h):**
    ``SUM(cost_usd)`` over the 24h window, compared against baseline
-   ``12 × $0.03 + 12 × $0.0001 = $0.3612`` from
-   ``.planning/intel/x-api-baseline.md``. PASS ≤ ``--cost-multiplier`` × baseline.
+   ``12 x $0.03 + 12 x $0.0001 = $0.3612`` from
+   ``.planning/intel/x-api-baseline.md``. PASS <= ``--cost-multiplier`` x baseline.
 
 **Verdict:** GO only if all three pass. Exit 0 on GO, 1 on NO-GO.
 
@@ -48,7 +48,7 @@ from tech_news_synth.config import load_settings
 from tech_news_synth.db.models import Cluster, Post
 from tech_news_synth.db.session import SessionLocal, init_engine
 
-# 12 tweets/24h × $0.03 + 12 × $0.0001 synth cost = $0.3612
+# 12 tweets/24h x $0.03 + 12 x $0.0001 synth cost = $0.3612
 # (from .planning/intel/x-api-baseline.md Phase 3 GO intel).
 BASELINE_COST_24H_USD = 0.3612
 DEFAULT_REPORT_PATH = ".planning/intel/cutover-report.md"
@@ -195,7 +195,7 @@ def render_report(result: dict[str, Any]) -> str:
     lines.append(f"- Observed: **${result['cost_sum_usd']:.4f}**")
     lines.append(f"- Baseline: ${result['cost_baseline_usd']:.4f}")
     lines.append(
-        f"- Cap (×{result['cost_multiplier']}): ${result['cost_cap_usd']:.4f}"
+        f"- Cap (x{result['cost_multiplier']}): ${result['cost_cap_usd']:.4f}"
     )
     lines.append(f"- Pass: **{result['cost_ok']}**")
     lines.append("")

@@ -146,7 +146,7 @@ def test_verdict_no_go_dup_found() -> None:
 
 def test_verdict_no_go_cost_exceeded() -> None:
     since = datetime(2026, 4, 15, 0, 0, tzinfo=UTC)
-    # Cost $0.80 > 2 × baseline ($0.3612) = $0.7224.
+    # Cost $0.80 > 2x baseline ($0.3612) = $0.7224.
     session = StubSession(posted_count=12, rows=[], cost_sum=Decimal("0.80"))
     result = cutover_verify.compute_verdict(since, 0.5, 2.0, session)
     assert result["verdict"] == "NO-GO"
