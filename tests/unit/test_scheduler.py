@@ -168,6 +168,11 @@ def test_run_cycle_calls_run_ingest_with_counts(
         "sources_skipped_disabled": 0,
     }
     run_ingest = mocker.patch("tech_news_synth.scheduler.run_ingest", return_value=fake_counts)
+    # Phase 5: mock run_clustering so this test stays focused on Phase 4 wiring.
+    mocker.patch(
+        "tech_news_synth.scheduler.run_clustering",
+        return_value=mocker.MagicMock(counts_patch={}),
+    )
     fake_client = mocker.MagicMock(name="http_client")
     build = mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=fake_client)
     sources_config = mocker.MagicMock(name="sources_config")
@@ -183,7 +188,7 @@ def test_run_cycle_calls_run_ingest_with_counts(
     assert call_args.args[3] is settings
     fake_client.close.assert_called_once()
 
-    # Counts forwarded to finish_cycle.
+    # Counts forwarded to finish_cycle (empty counts_patch merges to identity).
     _, finish_kwargs = finish.call_args
     assert finish_kwargs["counts"] == fake_counts
     assert finish_kwargs["status"] == "ok"
@@ -221,6 +226,121 @@ def test_paused_cycle_does_not_build_http_client(
 
     build.assert_not_called()
     run_ingest.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 wiring: run_clustering between ingest and finish
+# ---------------------------------------------------------------------------
+def _canned_selection(mocker):
+    return mocker.MagicMock(
+        counts_patch={
+            "articles_in_window": 10,
+            "cluster_count": 2,
+            "singleton_count": 0,
+            "chosen_cluster_id": 42,
+            "rejected_by_antirepeat": [],
+            "fallback_used": False,
+            "fallback_article_id": None,
+        }
+    )
+
+
+def test_run_cycle_calls_run_clustering_after_ingest(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    """D-14: run_cycle must call run_ingest → run_clustering → finish_cycle."""
+    _, _, _, finish = mock_db_in_scheduler
+    ingest_counts = {"articles_upserted": 10, "sources_ok": 3}
+
+    parent = mocker.MagicMock()
+    run_ingest = mocker.patch(
+        "tech_news_synth.scheduler.run_ingest", return_value=ingest_counts
+    )
+    run_clustering = mocker.patch(
+        "tech_news_synth.scheduler.run_clustering",
+        return_value=_canned_selection(mocker),
+    )
+    mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+    parent.attach_mock(run_ingest, "ingest")
+    parent.attach_mock(run_clustering, "cluster")
+    parent.attach_mock(finish, "finish")
+
+    run_cycle(settings, sources_config=mocker.MagicMock())
+
+    names = [c[0] for c in parent.mock_calls]
+    assert names.index("ingest") < names.index("cluster") < names.index("finish")
+
+
+def test_run_cycle_merges_counts_patch_into_finish_cycle(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    _, _, _, finish = mock_db_in_scheduler
+    ingest_counts = {"articles_upserted": 10, "sources_ok": 3}
+    mocker.patch("tech_news_synth.scheduler.run_ingest", return_value=ingest_counts)
+    mocker.patch(
+        "tech_news_synth.scheduler.run_clustering",
+        return_value=_canned_selection(mocker),
+    )
+    mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+
+    run_cycle(settings, sources_config=mocker.MagicMock())
+
+    _, finish_kwargs = finish.call_args
+    counts = finish_kwargs["counts"]
+    # Phase 4 keys preserved
+    assert counts["articles_upserted"] == 10
+    assert counts["sources_ok"] == 3
+    # Phase 5 keys merged
+    assert counts["chosen_cluster_id"] == 42
+    assert counts["cluster_count"] == 2
+    assert counts["singleton_count"] == 0
+    assert counts["fallback_used"] is False
+
+
+def test_run_cycle_clustering_exception_still_finishes_run_log_with_error(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    """INFRA-08: clustering failures don't escape; run_log row still persisted."""
+    _, _, _, finish = mock_db_in_scheduler
+    mocker.patch(
+        "tech_news_synth.scheduler.run_ingest",
+        return_value={"articles_upserted": 1, "sources_ok": 1},
+    )
+    mocker.patch(
+        "tech_news_synth.scheduler.run_clustering", side_effect=RuntimeError("cluster boom")
+    )
+    mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+
+    run_cycle(settings, sources_config=mocker.MagicMock())  # must not propagate
+
+    _, finish_kwargs = finish.call_args
+    assert finish_kwargs["status"] == "error"
+
+
+def test_paused_cycle_does_not_call_run_clustering(
+    settings: Settings, mock_db_in_scheduler, mocker, monkeypatch
+) -> None:
+    """INFRA-09 regression: pause short-circuits before clustering too."""
+    monkeypatch.setattr(scheduler_mod, "is_paused", lambda s: (True, "env"))
+    run_ingest = mocker.patch("tech_news_synth.scheduler.run_ingest")
+    run_clustering = mocker.patch("tech_news_synth.scheduler.run_clustering")
+
+    run_cycle(settings, sources_config=mocker.MagicMock())
+
+    run_ingest.assert_not_called()
+    run_clustering.assert_not_called()
+
+
+def test_legacy_sources_config_none_does_not_call_run_clustering(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    """Phase 1 legacy path (no sources_config) preserved — zero clustering call."""
+    run_clustering = mocker.patch("tech_news_synth.scheduler.run_clustering")
+    mocker.patch("tech_news_synth.scheduler.run_ingest")
+
+    run_cycle(settings, sources_config=None)
+
+    run_clustering.assert_not_called()
 
 
 def test_contextvars_bound_and_cleared(

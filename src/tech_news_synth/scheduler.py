@@ -23,6 +23,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
+from tech_news_synth.cluster.orchestrator import run_clustering
 from tech_news_synth.db.run_log import finish_cycle, start_cycle
 from tech_news_synth.db.session import SessionLocal
 from tech_news_synth.ids import new_cycle_id
@@ -87,7 +88,10 @@ def run_cycle(settings: Settings, sources_config: SourcesConfig | None = None) -
             if sources_config is not None:
                 # Phase 4+ path: real ingest cycle.
                 http_client = build_http_client()
-                counts = run_ingest(session, sources_config, http_client, settings)
+                ingest_counts = run_ingest(session, sources_config, http_client, settings)
+                # Phase 5 (D-14): clustering joins the same transaction.
+                selection = run_clustering(session, cycle_id, settings, sources_config)
+                counts = {**ingest_counts, **selection.counts_patch}
             else:
                 # Phase 1 legacy path (tests monkeypatch _run_cycle_body).
                 _run_cycle_body(settings)
