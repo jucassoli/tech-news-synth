@@ -77,7 +77,53 @@ def mark_disabled(session: Session, name: str) -> None:
     session.flush()
 
 
+def get_all_source_states(session: Session) -> list[SourceState]:
+    """Return all source_state rows ordered by name (Phase 8 OPS-04).
+
+    Pure read — caller owns session lifecycle. Used by ``cli.source_health``
+    status and ``--json`` modes.
+    """
+    return list(
+        session.execute(select(SourceState).order_by(SourceState.name)).scalars()
+    )
+
+
+def enable_source(session: Session, name: str) -> bool:
+    """Clear ``disabled_at`` and reset ``consecutive_failures`` (Phase 8 OPS-04).
+
+    Returns ``True`` on successful update, ``False`` when ``name`` is not in
+    ``source_state`` (completes the Phase 4 D-13 re-enable contract). Caller
+    owns the commit.
+    """
+    row = get_state(session, name)
+    if row is None:
+        return False
+    row.disabled_at = None
+    row.consecutive_failures = 0
+    session.flush()
+    return True
+
+
+def disable_source(session: Session, name: str) -> bool:
+    """Set ``disabled_at`` to now if currently null (Phase 8 OPS-04).
+
+    Returns ``True`` on successful update (idempotent — re-disabling a
+    disabled source is a no-op but still returns True), ``False`` when
+    ``name`` is not in ``source_state``. Caller owns the commit.
+    """
+    row = get_state(session, name)
+    if row is None:
+        return False
+    if row.disabled_at is None:
+        row.disabled_at = datetime.now(UTC)
+        session.flush()
+    return True
+
+
 __all__ = [
+    "disable_source",
+    "enable_source",
+    "get_all_source_states",
     "get_state",
     "mark_304",
     "mark_disabled",

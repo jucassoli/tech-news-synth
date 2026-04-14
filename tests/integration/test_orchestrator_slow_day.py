@@ -143,6 +143,11 @@ def test_single_article_window_fallback(db_session, settings: Settings) -> None:
 
     assert result.counts_patch["fallback_used"] is True
     assert result.fallback_article_id == only_id
+    # Phase 8 contract lock (D-06 field 5 derives from this key): the
+    # counts_patch MUST expose fallback_article_id on the fallback branch so
+    # cli.replay can re-materialize the single-article input without touching
+    # the posts row. Regression guard — do not remove.
+    assert result.counts_patch["fallback_article_id"] == only_id
     assert result.counts_patch["articles_in_window"] == 1
 
     clusters = list(

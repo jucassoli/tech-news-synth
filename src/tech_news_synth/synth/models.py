@@ -21,8 +21,8 @@ class SynthesisResult(BaseModel):
     input_tokens: int
     output_tokens: int
     cost_usd: float
-    post_id: int | None  # populated after 06-02 persists
-    status: Literal["pending", "dry_run"]
+    post_id: int | None  # populated after 06-02 persists; None when persist=False (Phase 8)
+    status: Literal["pending", "dry_run", "replay"]
     counts_patch: dict[str, object]  # for run_log.counts merge
 
 

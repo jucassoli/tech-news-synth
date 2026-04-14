@@ -80,8 +80,19 @@ def run_synthesis(
     sources_config: SourcesConfig,
     anthropic_client: anthropic.Anthropic,
     hashtag_allowlist: HashtagAllowlist,
+    *,
+    persist: bool = True,
 ) -> SynthesisResult:
-    """Compose synthesis and persist a posts row (Plan 06-02)."""
+    """Compose synthesis and (optionally) persist a posts row (Plan 06-02 / Phase 8 D-12).
+
+    ``persist=True`` (default): writes a posts row via ``insert_post``. This is the
+    scheduler's production path; the returned ``SynthesisResult`` has
+    ``post_id=<int>`` and ``status ∈ {pending, dry_run}``.
+
+    ``persist=False``: skips the ``insert_post`` call entirely (no DB writes from
+    this function). Returns ``SynthesisResult`` with ``post_id=None`` and
+    ``status='replay'``. Consumed by ``cli.replay`` (OPS-02).
+    """
     log = _log.bind(phase="synth", cycle_id=cycle_id)
 
     # --- Step 1: defensive empty-selection guard ---
@@ -204,28 +215,35 @@ def run_synthesis(
 
     # --- Step 5: cost + status ---
     cost_usd = compute_cost_usd(total_input_tokens, total_output_tokens)
-    status: Literal["pending", "dry_run"] = (
-        "dry_run" if settings.dry_run else "pending"
-    )
+    status: Literal["pending", "dry_run", "replay"]
+    if not persist:
+        status = "replay"
+    else:
+        status = "dry_run" if settings.dry_run else "pending"
     error_detail = (
         json.dumps(attempt_log, ensure_ascii=False)
         if final_method == "truncated"
         else None
     )
 
-    # --- Step 6: persist ---
-    post = insert_post(
-        session,
-        cycle_id=cycle_id,
-        cluster_id=cluster_id,
-        status=status,
-        theme_centroid=theme_centroid,
-        synthesized_text=final_text,
-        hashtags=hashtags,
-        cost_usd=cost_usd,
-        error_detail=error_detail,
-    )
-    session.flush()
+    # --- Step 6: persist (Phase 8 D-12: skipped when persist=False) ---
+    post_id: int | None
+    if persist:
+        post = insert_post(
+            session,
+            cycle_id=cycle_id,
+            cluster_id=cluster_id,
+            status=status,
+            theme_centroid=theme_centroid,
+            synthesized_text=final_text,
+            hashtags=hashtags,
+            cost_usd=cost_usd,
+            error_detail=error_detail,
+        )
+        session.flush()
+        post_id = post.id
+    else:
+        post_id = None
 
     log.info(
         "synth_done",
@@ -234,7 +252,8 @@ def run_synthesis(
         input_tokens=total_input_tokens,
         output_tokens=total_output_tokens,
         cost_usd=cost_usd,
-        post_id=post.id,
+        post_id=post_id,
+        persist=persist,
     )
 
     return SynthesisResult(
@@ -247,7 +266,7 @@ def run_synthesis(
         input_tokens=total_input_tokens,
         output_tokens=total_output_tokens,
         cost_usd=cost_usd,
-        post_id=post.id,
+        post_id=post_id,
         status=status,
         counts_patch={
             "synth_attempts": attempts_count,
@@ -255,7 +274,8 @@ def run_synthesis(
             "synth_input_tokens": total_input_tokens,
             "synth_output_tokens": total_output_tokens,
             "synth_cost_usd": cost_usd,
-            "post_id": post.id,
+            "char_budget_used": weighted_len(final_text),  # Phase 8 OPS-01 D-06 field 6
+            "post_id": post_id,
         },
     )
 

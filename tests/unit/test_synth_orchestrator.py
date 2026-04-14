@@ -123,6 +123,9 @@ def test_run_synthesis_completed_on_first_attempt(mocker):
     assert result.counts_patch["synth_attempts"] == 1
     assert result.counts_patch["synth_truncated"] is False
     assert result.counts_patch["post_id"] == 999
+    # Phase 8 OPS-01: char_budget_used is weighted_len of final text
+    from tech_news_synth.synth.charcount import weighted_len
+    assert result.counts_patch["char_budget_used"] == weighted_len(result.text)
 
 
 def test_run_synthesis_completed_on_second_attempt(mocker):
@@ -314,6 +317,63 @@ def test_run_synthesis_anthropic_error_propagates(mocker):
             _sources_config(), MagicMock(), _allowlist(),
         )
     insert_mock.assert_not_called()
+
+
+def test_run_synthesis_persist_false_skips_insert(mocker):
+    """Phase 8 D-12: persist=False MUST skip insert_post, return post_id=None,
+    status='replay', and counts_patch['post_id']=None. Text/cost still produced.
+    """
+    from tech_news_synth.synth import orchestrator as orch
+
+    articles = [_make_article(id=1, source="techcrunch", title="Apple M5", url="https://tc.com/a")]
+    mocker.patch.object(orch, "get_articles_by_ids", return_value=articles)
+    insert_mock = mocker.patch.object(orch, "insert_post")
+    mocker.patch.object(orch, "call_haiku", return_value=("Apple anuncia.", 30, 10))
+
+    selection = SelectionResult(
+        winner_cluster_id=42,
+        winner_article_ids=[1],
+        fallback_article_id=None,
+        rejected_by_antirepeat=[],
+        all_cluster_ids=[42],
+        counts_patch={},
+        winner_centroid=b"x",
+    )
+    session = _mock_session_with_cluster({"apple": 0.9})
+
+    result = orch.run_synthesis(
+        session, "cid", selection, _settings(),
+        _sources_config(), MagicMock(), _allowlist(),
+        persist=False,
+    )
+    insert_mock.assert_not_called()
+    assert result.post_id is None
+    assert result.status == "replay"
+    assert result.counts_patch["post_id"] is None
+    assert "char_budget_used" in result.counts_patch  # Phase 8 OPS-01
+    assert result.cost_usd > 0
+    assert result.text  # synthesis still ran end-to-end
+
+
+def test_run_synthesis_persist_must_be_keyword_only(mocker):
+    """Defense-in-depth: positional persist passes TypeError (T-08-02 mitigation)."""
+    from tech_news_synth.synth import orchestrator as orch
+
+    articles = [_make_article(id=1, source="techcrunch", title="T", url="https://tc.com/a")]
+    mocker.patch.object(orch, "get_articles_by_ids", return_value=articles)
+
+    selection = SelectionResult(
+        winner_cluster_id=42, winner_article_ids=[1], fallback_article_id=None,
+        rejected_by_antirepeat=[], all_cluster_ids=[42], counts_patch={},
+        winner_centroid=b"x",
+    )
+    session = _mock_session_with_cluster({"apple": 0.9})
+    with pytest.raises(TypeError):
+        orch.run_synthesis(
+            session, "cid", selection, _settings(),
+            _sources_config(), MagicMock(), _allowlist(),
+            False,  # positional — must fail
+        )
 
 
 def test_run_synthesis_cluster_terms_drive_hashtags(mocker):
