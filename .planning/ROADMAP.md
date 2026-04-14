@@ -99,7 +99,9 @@ Plans:
   3. A post that exceeds `280 − 23 (t.co) − hashtag_budget` under weighted char count triggers up to 2 "encurte para N" re-prompt retries; if still over, last-resort whitespace-aware truncation with ellipsis is applied — and a human reviewing 10 fixture synthesized posts finds every one under the limit
   4. The final output string follows `<síntese PT-BR> <source-URL> <hashtag(s)>`, always includes the source URL for attribution, and uses 1–2 hashtags selected from an allowlist (not freestyled by the LLM)
   5. Every synthesis call logs `input_tokens`, `output_tokens`, and `cost_usd` in the cycle summary AND writes `cost_usd` to the corresponding `posts` row
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 06-01-PLAN.md — Pure-function synthesis toolkit (charcount, truncate, pickers, hashtags, prompts, Anthropic client wrapper) + Wave 0 scaffold (deps, Settings, SelectionResult extension, DB helpers, 10 fixtures)
+- [ ] 06-02-PLAN.md — run_synthesis orchestrator composition, scheduler wiring, Anthropic client lifecycle, integration tests, compose smoke checkpoint
 
 ### Phase 7: Publish
 **Goal**: Idempotently post the synthesized tweet to @ByteRelevant with hard guardrails on quota, cost, and rate limits — the only irreversible side effect in the pipeline
