@@ -232,7 +232,15 @@ def test_paused_cycle_does_not_build_http_client(
 # Phase 5 wiring: run_clustering between ingest and finish
 # ---------------------------------------------------------------------------
 def _canned_selection(mocker):
+    """Default canned selection: winner present → synthesis WILL run in prod.
+
+    Tests calling this must also patch ``run_synthesis`` (see
+    ``_patch_synth``) to avoid hitting the real orchestrator.
+    """
     return mocker.MagicMock(
+        winner_cluster_id=42,
+        winner_article_ids=[1],
+        fallback_article_id=None,
         counts_patch={
             "articles_in_window": 10,
             "cluster_count": 2,
@@ -241,14 +249,54 @@ def _canned_selection(mocker):
             "rejected_by_antirepeat": [],
             "fallback_used": False,
             "fallback_article_id": None,
+        },
+    )
+
+
+def _empty_selection(mocker):
+    """Selection with neither winner nor fallback → scheduler must skip synth."""
+    return mocker.MagicMock(
+        winner_cluster_id=None,
+        winner_article_ids=None,
+        fallback_article_id=None,
+        counts_patch={
+            "articles_in_window": 0,
+            "cluster_count": 0,
+            "singleton_count": 0,
+            "chosen_cluster_id": None,
+            "rejected_by_antirepeat": [],
+            "fallback_used": False,
+            "fallback_article_id": None,
+        },
+    )
+
+
+def _patch_synth(mocker, counts_patch: dict | None = None):
+    """Patch scheduler.run_synthesis + anthropic.Anthropic to safe mocks."""
+    mocker.patch("tech_news_synth.scheduler.anthropic.Anthropic")
+    mocker.patch(
+        "tech_news_synth.scheduler.load_hashtag_allowlist",
+        return_value=mocker.MagicMock(name="allowlist"),
+    )
+    synth_result = mocker.MagicMock(
+        counts_patch=counts_patch if counts_patch is not None else {
+            "synth_attempts": 1,
+            "synth_truncated": False,
+            "synth_input_tokens": 100,
+            "synth_output_tokens": 40,
+            "synth_cost_usd": 0.000038,
+            "post_id": 7,
         }
+    )
+    return mocker.patch(
+        "tech_news_synth.scheduler.run_synthesis", return_value=synth_result
     )
 
 
 def test_run_cycle_calls_run_clustering_after_ingest(
     settings: Settings, mock_db_in_scheduler, mocker
 ) -> None:
-    """D-14: run_cycle must call run_ingest → run_clustering → finish_cycle."""
+    """D-14: run_cycle must call run_ingest → run_clustering → run_synthesis → finish_cycle."""
     _, _, _, finish = mock_db_in_scheduler
     ingest_counts = {"articles_upserted": 10, "sources_ok": 3}
 
@@ -260,15 +308,22 @@ def test_run_cycle_calls_run_clustering_after_ingest(
         "tech_news_synth.scheduler.run_clustering",
         return_value=_canned_selection(mocker),
     )
+    run_synthesis = _patch_synth(mocker)
     mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
     parent.attach_mock(run_ingest, "ingest")
     parent.attach_mock(run_clustering, "cluster")
+    parent.attach_mock(run_synthesis, "synth")
     parent.attach_mock(finish, "finish")
 
     run_cycle(settings, sources_config=mocker.MagicMock())
 
     names = [c[0] for c in parent.mock_calls]
-    assert names.index("ingest") < names.index("cluster") < names.index("finish")
+    assert (
+        names.index("ingest")
+        < names.index("cluster")
+        < names.index("synth")
+        < names.index("finish")
+    )
 
 
 def test_run_cycle_merges_counts_patch_into_finish_cycle(
@@ -281,6 +336,7 @@ def test_run_cycle_merges_counts_patch_into_finish_cycle(
         "tech_news_synth.scheduler.run_clustering",
         return_value=_canned_selection(mocker),
     )
+    _patch_synth(mocker)
     mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
 
     run_cycle(settings, sources_config=mocker.MagicMock())
@@ -295,6 +351,10 @@ def test_run_cycle_merges_counts_patch_into_finish_cycle(
     assert counts["cluster_count"] == 2
     assert counts["singleton_count"] == 0
     assert counts["fallback_used"] is False
+    # Phase 6 keys merged
+    assert counts["synth_attempts"] == 1
+    assert counts["post_id"] == 7
+    assert counts["synth_cost_usd"] == 0.000038
 
 
 def test_run_cycle_clustering_exception_still_finishes_run_log_with_error(
@@ -309,6 +369,7 @@ def test_run_cycle_clustering_exception_still_finishes_run_log_with_error(
     mocker.patch(
         "tech_news_synth.scheduler.run_clustering", side_effect=RuntimeError("cluster boom")
     )
+    _patch_synth(mocker)  # never called on clustering crash, but safe to patch
     mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
 
     run_cycle(settings, sources_config=mocker.MagicMock())  # must not propagate
@@ -368,3 +429,113 @@ def test_contextvars_bound_and_cleared(
     assert post, "expected post_cycle_line in captured output"
     # contextvars must have been cleared.
     assert "cycle_id" not in post[-1]
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 wiring: run_synthesis called after run_clustering (conditional)
+# ---------------------------------------------------------------------------
+def test_scheduler_calls_run_synthesis_when_selection_nonempty(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    """Non-empty selection → run_synthesis called exactly once."""
+    mocker.patch(
+        "tech_news_synth.scheduler.run_ingest",
+        return_value={"articles_upserted": 1, "sources_ok": 1},
+    )
+    mocker.patch(
+        "tech_news_synth.scheduler.run_clustering",
+        return_value=_canned_selection(mocker),
+    )
+    synth = _patch_synth(mocker)
+    mocker.patch(
+        "tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock()
+    )
+
+    run_cycle(settings, sources_config=mocker.MagicMock())
+
+    synth.assert_called_once()
+
+
+def test_scheduler_skips_synthesis_when_empty_window(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    """Empty selection (no winner AND no fallback) → run_synthesis NOT called."""
+    _, _, _, finish = mock_db_in_scheduler
+    mocker.patch(
+        "tech_news_synth.scheduler.run_ingest",
+        return_value={"articles_upserted": 0, "sources_ok": 1},
+    )
+    mocker.patch(
+        "tech_news_synth.scheduler.run_clustering",
+        return_value=_empty_selection(mocker),
+    )
+    synth = _patch_synth(mocker)
+    mocker.patch(
+        "tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock()
+    )
+
+    run_cycle(settings, sources_config=mocker.MagicMock())
+
+    synth.assert_not_called()
+    # finish_cycle still called with ingest + selection counts merged (no synth keys)
+    _, finish_kwargs = finish.call_args
+    assert finish_kwargs["status"] == "ok"
+    counts = finish_kwargs["counts"]
+    assert "synth_attempts" not in counts
+
+
+def test_scheduler_calls_synthesis_on_fallback_path(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    """Fallback-only selection still triggers synthesis (single-article path)."""
+    sel = mocker.MagicMock(
+        winner_cluster_id=None,
+        winner_article_ids=None,
+        fallback_article_id=99,
+        counts_patch={"fallback_used": True, "fallback_article_id": 99},
+    )
+    mocker.patch(
+        "tech_news_synth.scheduler.run_ingest",
+        return_value={"articles_upserted": 1, "sources_ok": 1},
+    )
+    mocker.patch("tech_news_synth.scheduler.run_clustering", return_value=sel)
+    synth = _patch_synth(mocker)
+    mocker.patch(
+        "tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock()
+    )
+
+    run_cycle(settings, sources_config=mocker.MagicMock())
+    synth.assert_called_once()
+
+
+def test_scheduler_anthropic_error_propagates_to_infra_08(
+    settings: Settings, mock_db_in_scheduler, mocker
+) -> None:
+    """run_synthesis exception → cycle marked error; scheduler does not crash."""
+    _, _, _, finish = mock_db_in_scheduler
+    mocker.patch(
+        "tech_news_synth.scheduler.run_ingest",
+        return_value={"articles_upserted": 1, "sources_ok": 1},
+    )
+    mocker.patch(
+        "tech_news_synth.scheduler.run_clustering",
+        return_value=_canned_selection(mocker),
+    )
+    mocker.patch("tech_news_synth.scheduler.anthropic.Anthropic")
+    mocker.patch(
+        "tech_news_synth.scheduler.load_hashtag_allowlist",
+        return_value=mocker.MagicMock(name="allowlist"),
+    )
+    mocker.patch(
+        "tech_news_synth.scheduler.run_synthesis",
+        side_effect=RuntimeError("anthropic_boom"),
+    )
+    mocker.patch(
+        "tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock()
+    )
+
+    # must NOT raise
+    run_cycle(settings, sources_config=mocker.MagicMock())
+
+    _, finish_kwargs = finish.call_args
+    assert finish_kwargs["status"] == "error"
