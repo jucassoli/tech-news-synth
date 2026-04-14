@@ -101,7 +101,7 @@ Plans:
   5. Every synthesis call logs `input_tokens`, `output_tokens`, and `cost_usd` in the cycle summary AND writes `cost_usd` to the corresponding `posts` row
 **Plans**: 2 plans
 - [x] 06-01-PLAN.md — Pure-function synthesis toolkit (charcount, truncate, pickers, hashtags, prompts, Anthropic client wrapper) + Wave 0 scaffold (deps, Settings, SelectionResult extension, DB helpers, 10 fixtures)
-- [ ] 06-02-PLAN.md — run_synthesis orchestrator composition, scheduler wiring, Anthropic client lifecycle, integration tests, compose smoke checkpoint
+- [x] 06-02-PLAN.md — run_synthesis orchestrator composition, scheduler wiring, Anthropic client lifecycle, integration tests, compose smoke checkpoint
 
 ### Phase 7: Publish
 **Goal**: Idempotently post the synthesized tweet to @ByteRelevant with hard guardrails on quota, cost, and rate limits — the only irreversible side effect in the pipeline
