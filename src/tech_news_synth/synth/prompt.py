@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from tech_news_synth.db.models import Article
 
+SUMMARY_TRUNCATE_CHARS = 500
+
 
 def build_system_prompt(char_budget: int) -> str:  # noqa: ARG001
     raise NotImplementedError("Plan 06-01 Task 4 implements build_system_prompt")
