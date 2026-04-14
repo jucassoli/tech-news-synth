@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from tech_news_synth.config import Settings
 
 
-def check_caps(session: Session, settings: "Settings") -> CapCheckResult:
+def check_caps(session: Session, settings: Settings) -> CapCheckResult:
     """Compute daily + monthly caps; return a frozen verdict.
 
     D-04: called BETWEEN ``run_clustering`` and ``run_synthesis``. If

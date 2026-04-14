@@ -95,9 +95,7 @@ def read_centroid(session: Session, post_id: int) -> bytes | None:
     ).scalar_one_or_none()
 
 
-def get_recent_posts_with_source_texts(
-    session: Session, within_hours: int
-) -> list[PostWithTexts]:
+def get_recent_posts_with_source_texts(session: Session, within_hours: int) -> list[PostWithTexts]:
     """Posts with ``status='posted'`` AND ``posted_at > now - hours``, joined
     to their cluster's article texts (research P-9).
 

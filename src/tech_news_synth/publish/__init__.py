@@ -2,6 +2,7 @@
 
 from tech_news_synth.publish.caps import check_caps
 from tech_news_synth.publish.client import XCallOutcome, build_x_client, post_tweet
+from tech_news_synth.publish.idempotency import cleanup_stale_pending
 from tech_news_synth.publish.models import CapCheckResult, PublishResult
 
 __all__ = [
@@ -10,5 +11,6 @@ __all__ = [
     "XCallOutcome",
     "build_x_client",
     "check_caps",
+    "cleanup_stale_pending",
     "post_tweet",
 ]

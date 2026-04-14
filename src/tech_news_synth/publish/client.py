@@ -34,7 +34,7 @@ class XCallOutcome:
     error_detail: dict | None
 
 
-def build_x_client(settings: "Settings") -> tweepy.Client:
+def build_x_client(settings: Settings) -> tweepy.Client:
     """Build a per-cycle tweepy.Client with enforced timeout.
 
     D-13: constructed once per cycle; no explicit close (tweepy wraps a
@@ -51,9 +51,7 @@ def build_x_client(settings: "Settings") -> tweepy.Client:
     # tweepy.Client has no `timeout` kwarg; monkey-wrap session.request
     # so every HTTP call gets the configured timeout (T-07-08).
     _orig_request = client.session.request
-    client.session.request = functools.partial(
-        _orig_request, timeout=settings.x_api_timeout_sec
-    )
+    client.session.request = functools.partial(_orig_request, timeout=settings.x_api_timeout_sec)
     return client
 
 

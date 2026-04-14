@@ -103,7 +103,7 @@ class Settings(BaseSettings):
         return v
 
     @model_validator(mode="after")
-    def _require_x_oauth_secrets(self) -> "Settings":
+    def _require_x_oauth_secrets(self) -> Settings:
         """D-01: reject bearer-only configs at boot (PUBLISH-01)."""
         missing = [
             name
