@@ -15,7 +15,7 @@ progress:
 
 # tech-news-synth — STATE
 
-**Last updated:** 2026-04-12
+**Last updated:** 2026-04-14
 
 ## Project Reference
 
@@ -26,11 +26,11 @@ progress:
 ## Current Position
 
 Phase: 05 (Cluster + Rank) — EXECUTING
-Plan: 1 of 2
+Plan: 2 of 2
 
 - **Milestone:** v1 (initial production-ready agent on @ByteRelevant)
-- **Phase:** 02 — Storage Layer (EXECUTING)
-- **Plan:** 02-01 COMPLETE → 02-02 next
+- **Phase:** 05 — Cluster + Rank (EXECUTING)
+- **Plan:** 05-01 COMPLETE → 05-02 next
 - **Status:** Executing Phase 05
 - **Progress:** [█████████░] 89%
 
@@ -67,6 +67,8 @@ Plan: 1 of 2
 - Base image: `python:3.12-slim-bookworm` (Alpine breaks scikit-learn/lxml wheels)
 - Secrets: `.env` + `env_file:` in compose; `.env.example` versioned; pre-commit secret scan
 - Logs: structlog JSON → stdout + Docker volume; `cycle_id` bound per cycle
+- Phase 5 pure-core: PT stopwords stripped in `preprocess()` (not TfidfVectorizer param) — sklearn silently ignores `stop_words` with `analyzer=char_wb` (research P-1)
+- Phase 5 anti-repeat: ONE TF-IDF fit per cycle over combined current+past_posts corpus with `FittedCorpus` slice bookkeeping (D-01); past-post centroids computed from the same feature space as cluster centroids
 
 ### Open Questions (deferred to phase research)
 
@@ -77,21 +79,21 @@ Plan: 1 of 2
 
 ### Todos (inbox)
 
-- [ ] Execute Plan 02-02 (alembic bootstrap, run_migrations, repos, scheduler wiring)
+- [ ] Execute Plan 05-02 (orchestrator + DB helpers + scheduler wiring + integration tests)
 - [ ] Confirm `.planning/intel/` directory exists (will be created during Phase 3 gate)
 
 ### Blockers
 
-- None for Plan 02-02.
-- Plan 01-02 checkpoint (11-step docker compose smoke) still pending operator sign-off — does not block Plan 02-02 development.
+- None for Plan 05-02.
+- Plan 01-02 checkpoint (11-step docker compose smoke) still pending operator sign-off — does not block Plan 05-02 development.
 
 ## Session Continuity
 
 - **Last session:** 2026-04-14T01:28:44.966Z
-- **Last action:** Plan 02-01 executed: db package (base, hashing, session, models), integration conftest with transactional-rollback fixture, red stubs for Plan 02-02 — 94 unit tests + 2 integration tests green.
+- **Last action:** Plan 05-01 executed: pure-core cluster toolkit (9 modules) + Settings extension + per-source weight + 5 fixtures + 60 new unit tests (221 total green). Research P-1 stopword pitfall codified via preprocessor-level stripping with `vectorizer.stop_words is None` assertion.
 - **Stopped At:** Completed 05-01-PLAN.md; Plan 05-02 next (orchestrator + DB helpers + scheduler wiring)
-- **Next action:** Execute Plan 02-02 (alembic tree, run_migrations, repos, scheduler.run_cycle wiring).
-- **Resume command:** `/gsd-execute-phase 02`
+- **Next action:** Execute Plan 05-02 (run_clustering orchestrator, get_articles_in_window, get_recent_posts_with_source_texts, update_chosen, scheduler.run_cycle wiring, integration tests).
+- **Resume command:** `/gsd-execute-phase 05`
 
 ---
 *STATE.md is the single source of truth for "where are we right now." Updated at phase transitions and plan completion.*
