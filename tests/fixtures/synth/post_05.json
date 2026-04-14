@@ -1,0 +1,9 @@
+{
+  "name": "accented_pt_chars",
+  "cluster_articles": [
+    {"source": "techcrunch", "title": "Brasil aprova nova regulação para IA generativa em produção", "summary": "O marco regulatório define critérios de transparência e responsabilização para modelos de IA em ambientes de produção.", "url": "https://techcrunch.com/2026/brasil-regulacao-ia", "published_at": "2026-04-14T05:00:00Z"},
+    {"source": "verge", "title": "Lei brasileira de IA ganha contornos após votação", "summary": "A votação consolidou a separação entre IA de uso geral e sistemas de alto risco.", "url": "https://theverge.com/2026/brasil-ia-lei", "published_at": "2026-04-14T05:30:00Z"}
+  ],
+  "centroid_terms": {"ia": 0.9, "regulacao": 0.5, "brasil": 0.4, "ai": 0.3},
+  "expected_hashtags_subset": ["#IA"]
+}

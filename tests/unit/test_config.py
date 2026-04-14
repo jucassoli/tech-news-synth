@@ -217,3 +217,52 @@ def test_cluster_settings_rejects_invalid(monkeypatch_env, monkeypatch, env_var,
     monkeypatch.setenv(env_var, bad_value)
     with pytest.raises(ValidationError):
         load_settings()
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 — synthesis settings (D-13)
+# ---------------------------------------------------------------------------
+def test_synthesis_settings_defaults(monkeypatch_env):
+    from tech_news_synth.config import load_settings
+
+    s = load_settings()
+    assert s.synthesis_max_tokens == 150
+    assert s.synthesis_char_budget == 225
+    assert s.synthesis_max_retries == 2
+    assert s.hashtag_budget_chars == 30
+    assert s.hashtags_config_path == "/app/config/hashtags.yaml"
+
+
+@pytest.mark.parametrize(
+    "env_var,bad_value",
+    [
+        ("SYNTHESIS_MAX_TOKENS", "49"),
+        ("SYNTHESIS_MAX_TOKENS", "501"),
+        ("SYNTHESIS_CHAR_BUDGET", "99"),
+        ("SYNTHESIS_CHAR_BUDGET", "281"),
+        ("SYNTHESIS_MAX_RETRIES", "-1"),
+        ("SYNTHESIS_MAX_RETRIES", "6"),
+        ("HASHTAG_BUDGET_CHARS", "-1"),
+        ("HASHTAG_BUDGET_CHARS", "51"),
+    ],
+)
+def test_synthesis_settings_rejects_invalid(monkeypatch_env, monkeypatch, env_var, bad_value):
+    from tech_news_synth.config import load_settings
+
+    monkeypatch.setenv(env_var, bad_value)
+    with pytest.raises(ValidationError):
+        load_settings()
+
+
+def test_synthesis_settings_accepts_valid_override(monkeypatch_env, monkeypatch):
+    from tech_news_synth.config import load_settings
+
+    monkeypatch.setenv("SYNTHESIS_MAX_TOKENS", "200")
+    monkeypatch.setenv("SYNTHESIS_CHAR_BUDGET", "240")
+    monkeypatch.setenv("SYNTHESIS_MAX_RETRIES", "3")
+    monkeypatch.setenv("HASHTAG_BUDGET_CHARS", "25")
+    s = load_settings()
+    assert s.synthesis_max_tokens == 200
+    assert s.synthesis_char_budget == 240
+    assert s.synthesis_max_retries == 3
+    assert s.hashtag_budget_chars == 25

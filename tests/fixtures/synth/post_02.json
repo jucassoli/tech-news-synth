@@ -1,0 +1,9 @@
+{
+  "name": "two_article_cluster",
+  "cluster_articles": [
+    {"source": "techcrunch", "title": "Google expands Gemini to enterprise tier", "summary": "Google's Gemini for Business gains rollout to EMEA with enhanced data-residency controls.", "url": "https://techcrunch.com/2026/gemini-enterprise", "published_at": "2026-04-14T08:00:00Z"},
+    {"source": "verge", "title": "Gemini for enterprises now in EU", "summary": "The Verge reports EU availability of Gemini Enterprise with GDPR-aligned defaults.", "url": "https://theverge.com/2026/gemini-eu", "published_at": "2026-04-14T08:45:00Z"}
+  ],
+  "centroid_terms": {"google": 0.8, "gemini": 0.72, "ai": 0.4, "enterprise": 0.2},
+  "expected_hashtags_subset": ["#Google"]
+}

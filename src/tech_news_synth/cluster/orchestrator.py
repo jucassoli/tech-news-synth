@@ -20,6 +20,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 from tech_news_synth.cluster.antirepeat import check_antirepeat
 from tech_news_synth.cluster.cluster import compute_centroid, run_agglomerative
 from tech_news_synth.cluster.fallback import pick_fallback
@@ -188,6 +190,10 @@ def run_clustering(
     if winner is not None:
         update_cluster_chosen(session, winner.cluster_db_id, True)
         counts_patch["chosen_cluster_id"] = winner.cluster_db_id
+        # Phase 6 plumbing (D-09): serialize centroid for downstream synth.
+        # ``winner.centroid`` is the cluster centroid vector returned by
+        # compute_centroid; coerce to float32 for compact BYTEA storage.
+        winner_centroid_bytes = np.asarray(winner.centroid, dtype=np.float32).tobytes()
         log.info(
             "cluster_winner",
             cluster_db_id=winner.cluster_db_id,
@@ -200,6 +206,7 @@ def run_clustering(
             rejected_by_antirepeat=rejected,
             all_cluster_ids=all_cluster_ids,
             counts_patch=counts_patch,
+            winner_centroid=winner_centroid_bytes,
         )
 
     # Fallback path.

@@ -60,6 +60,13 @@ class Settings(BaseSettings):
     anti_repeat_cosine_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
     anti_repeat_window_hours: int = Field(default=48, ge=1, le=168)
 
+    # --- Phase 6 synthesis (D-13) ---
+    synthesis_max_tokens: int = Field(default=150, ge=50, le=500)
+    synthesis_char_budget: int = Field(default=225, ge=100, le=280)
+    synthesis_max_retries: int = Field(default=2, ge=0, le=5)
+    hashtag_budget_chars: int = Field(default=30, ge=0, le=50)
+    hashtags_config_path: str = "/app/config/hashtags.yaml"
+
     # --- Secrets (SecretStr — never raw) ---
     anthropic_api_key: SecretStr
     x_consumer_key: SecretStr

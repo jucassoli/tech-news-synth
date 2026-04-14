@@ -1,0 +1,9 @@
+{
+  "name": "tech_jargon_heavy",
+  "cluster_articles": [
+    {"source": "ars_technica", "title": "Kubernetes 1.33 adds sidecar containers GA + native LLM gateway CRDs", "summary": "Sidecar containers graduate to GA; LLM gateway via CRDs enables multi-tenant token metering on-cluster.", "url": "https://arstechnica.com/2026/k8s-1-33", "published_at": "2026-04-14T04:00:00Z"},
+    {"source": "hacker_news", "title": "K8s 1.33 release notes: LLM gateway CRDs", "summary": "HN thread discussing the design tradeoffs of the new CRDs vs ingress gateway.", "url": "https://news.ycombinator.com/item?id=88888", "published_at": "2026-04-14T04:30:00Z"}
+  ],
+  "centroid_terms": {"kubernetes": 0.85, "llm": 0.6, "ai": 0.4, "cloud": 0.3},
+  "expected_hashtags_subset": ["#Cloud"]
+}

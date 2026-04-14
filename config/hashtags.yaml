@@ -1,0 +1,26 @@
+# Hashtag allowlist for synthesis output (D-11).
+#
+# Loaded at boot via ``synth.hashtags.load_hashtag_allowlist``. The hashtag
+# selector substring-matches cluster ``centroid_terms`` keys against these
+# topic keys and emits up to 2 tags. LLM NEVER picks hashtags (D-11).
+#
+# Schema (pydantic-validated):
+#   topics: dict[str, list[str]]  # topic slug → list of hashtags (with '#')
+#   default: list[str]            # fallback tags when no topic matches
+#
+# Bind-mounted at /app/config/hashtags.yaml in compose (same pattern as
+# sources.yaml).
+
+topics:
+  ai: ["#IA", "#ML"]
+  apple: ["#Apple"]
+  google: ["#Google"]
+  microsoft: ["#Microsoft"]
+  security: ["#Cybersecurity", "#InfoSec"]
+  chips: ["#Semicondutores"]
+  open_source: ["#OpenSource"]
+  cloud: ["#Cloud"]
+  web: ["#Web"]
+  mobile: ["#Mobile"]
+
+default: ["#tech"]

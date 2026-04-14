@@ -1,0 +1,9 @@
+{
+  "name": "url_in_title_edge",
+  "cluster_articles": [
+    {"source": "ars_technica", "title": "Cloudflare's 1.1.1.1 DNS outage root-caused to BGP config drift", "summary": "Cloudflare's post-mortem attributes the 37-minute outage to an incorrect BGP community tag.", "url": "https://arstechnica.com/2026/cloudflare-outage", "published_at": "2026-04-14T00:00:00Z"},
+    {"source": "verge", "title": "Cloudflare publishes 1.1.1.1 outage post-mortem", "summary": "The company promises tooling changes to prevent a recurrence.", "url": "https://theverge.com/2026/cf-postmortem", "published_at": "2026-04-14T00:30:00Z"}
+  ],
+  "centroid_terms": {"cloudflare": 0.85, "dns": 0.5, "cloud": 0.45, "web": 0.25},
+  "expected_hashtags_subset": ["#Cloud"]
+}

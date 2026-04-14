@@ -1,0 +1,9 @@
+{
+  "name": "mixed_pt_en",
+  "cluster_articles": [
+    {"source": "techcrunch", "title": "Meta rolls out Llama 4 with multimodal vision", "summary": "Meta's Llama 4 targets on-device inference via a distilled 3B variant.", "url": "https://techcrunch.com/2026/meta-llama-4", "published_at": "2026-04-14T03:00:00Z"},
+    {"source": "verge", "title": "Meta libera Llama 4 com visão multimodal", "summary": "A versão 3B roda em dispositivos móveis com quantização 4-bit.", "url": "https://theverge.com/2026/meta-llama-4-pt", "published_at": "2026-04-14T03:30:00Z"}
+  ],
+  "centroid_terms": {"meta": 0.8, "llama": 0.75, "ai": 0.5, "multimodal": 0.3},
+  "expected_hashtags_subset": ["#IA"]
+}

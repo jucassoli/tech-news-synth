@@ -9,10 +9,12 @@ Caller owns the transaction.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Literal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -132,10 +134,50 @@ def get_recent_posts_with_source_texts(
     return results
 
 
+def insert_post(
+    session: Session,
+    *,
+    cycle_id: str,
+    cluster_id: int | None,
+    status: Literal["pending", "dry_run", "failed"],
+    theme_centroid: bytes | None,
+    synthesized_text: str,
+    hashtags: Sequence[str],
+    cost_usd: float,
+    error_detail: str | dict | None = None,
+) -> Post:
+    """Insert a fully-populated post row (Phase 6 D-08/09/10).
+
+    Unlike the legacy ``insert_pending`` helper (kept for Phase 2 callers),
+    this writes all fields at once. ``error_detail`` dicts are JSON-serialized
+    (synthesis attempt logs per D-10).
+    """
+    detail: str | None
+    if isinstance(error_detail, dict):
+        detail = json.dumps(error_detail, ensure_ascii=False)
+    else:
+        detail = error_detail
+
+    post = Post(
+        cycle_id=cycle_id,
+        cluster_id=cluster_id,
+        status=status,
+        theme_centroid=theme_centroid,
+        synthesized_text=synthesized_text,
+        hashtags=list(hashtags),
+        cost_usd=Decimal(str(cost_usd)),
+        error_detail=detail,
+    )
+    session.add(post)
+    session.flush()
+    return post
+
+
 __all__ = [
     "PostWithTexts",
     "get_recent_posts_with_source_texts",
     "insert_pending",
+    "insert_post",
     "read_centroid",
     "update_failed",
     "update_posted",

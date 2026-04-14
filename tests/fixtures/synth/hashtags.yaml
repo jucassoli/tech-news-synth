@@ -1,0 +1,8 @@
+# Minimal hashtag allowlist for synth unit tests.
+topics:
+  ai: ["#IA", "#ML"]
+  apple: ["#Apple"]
+  security: ["#Cybersecurity", "#InfoSec"]
+  chips: ["#Semicondutores"]
+
+default: ["#tech"]

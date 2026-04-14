@@ -1,0 +1,12 @@
+{
+  "name": "hot_topic_5_sources",
+  "cluster_articles": [
+    {"source": "techcrunch", "title": "Apple unveils new M5 chip with AI acceleration", "summary": "Apple announced the M5 chip featuring a redesigned Neural Engine and up to 30% faster AI inference compared to M4.", "url": "https://techcrunch.com/2026/apple-m5", "published_at": "2026-04-14T09:00:00Z"},
+    {"source": "verge", "title": "Inside Apple's M5 launch event", "summary": "The Verge's coverage of the M5 keynote highlights on-device LLM performance and new thermal design.", "url": "https://theverge.com/2026/apple-m5-event", "published_at": "2026-04-14T09:30:00Z"},
+    {"source": "ars_technica", "title": "M5 benchmarks reveal AI-first architecture", "summary": "Ars Technica benchmarks show M5 outperforming M4 in neural workloads by a wide margin.", "url": "https://arstechnica.com/2026/m5-benchmarks", "published_at": "2026-04-14T10:00:00Z"},
+    {"source": "hacker_news", "title": "Apple M5 Chip Announcement", "summary": "HN submission discussion of the M5 chip reveal.", "url": "https://news.ycombinator.com/item?id=99999", "published_at": "2026-04-14T10:15:00Z"},
+    {"source": "reddit_tech", "title": "r/tech thread: Apple's M5 is here", "summary": "Community discussion thread on M5 performance.", "url": "https://reddit.com/r/tech/99", "published_at": "2026-04-14T10:30:00Z"}
+  ],
+  "centroid_terms": {"apple": 0.95, "m5": 0.88, "chip": 0.61, "ai": 0.42, "benchmark": 0.31},
+  "expected_hashtags_subset": ["#Apple"]
+}

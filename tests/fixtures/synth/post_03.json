@@ -1,0 +1,8 @@
+{
+  "name": "fallback_solo_article",
+  "cluster_articles": [
+    {"source": "ars_technica", "title": "Linux kernel 6.20 ships with scheduler rewrite", "summary": "The Linux 6.20 release introduces BORE-EEVDF scheduler as default, aiming at desktop responsiveness.", "url": "https://arstechnica.com/2026/linux-6-20", "published_at": "2026-04-14T06:00:00Z"}
+  ],
+  "centroid_terms": {"linux": 0.9, "kernel": 0.6, "open_source": 0.3},
+  "expected_hashtags_subset": ["#OpenSource"]
+}

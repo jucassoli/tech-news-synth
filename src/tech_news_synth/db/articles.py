@@ -78,4 +78,25 @@ def get_articles_in_window(session: Session, hours: int) -> list[Article]:
     )
 
 
-__all__ = ["ArticleRow", "get_articles_in_window", "get_by_hash", "upsert_batch"]
+def get_articles_by_ids(session: Session, ids: list[int]) -> list[Article]:
+    """Fetch Articles by id, preserving the input order (Phase 6 helper).
+
+    Missing ids are silently filtered out — callers should validate the input
+    against their own invariants upstream. Empty input returns ``[]``.
+    """
+    if not ids:
+        return []
+    rows = list(
+        session.execute(select(Article).where(Article.id.in_(ids))).scalars().all()
+    )
+    by_id: dict[int, Article] = {a.id: a for a in rows}
+    return [by_id[i] for i in ids if i in by_id]
+
+
+__all__ = [
+    "ArticleRow",
+    "get_articles_by_ids",
+    "get_articles_in_window",
+    "get_by_hash",
+    "upsert_batch",
+]

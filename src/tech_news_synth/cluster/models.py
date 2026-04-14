@@ -20,6 +20,10 @@ class SelectionResult(BaseModel):
     rejected_by_antirepeat: list[int]
     all_cluster_ids: list[int]
     counts_patch: dict[str, object]
+    # Phase 6 Plan 06-01: numpy float32 centroid bytes (D-09 plumbing).
+    # Default None preserves backward compat for the fallback branch and
+    # for tests constructed before this field existed.
+    winner_centroid: bytes | None = None
 
 
 __all__ = ["SelectionResult"]

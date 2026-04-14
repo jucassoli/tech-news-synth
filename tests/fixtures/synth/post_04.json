@@ -1,0 +1,9 @@
+{
+  "name": "very_long_titles",
+  "cluster_articles": [
+    {"source": "techcrunch", "title": "Microsoft announces a sweeping overhaul of its Azure AI lineup, consolidating Foundry, Studio, and Copilot platforms into a unified control plane for enterprise customers", "summary": "The consolidation aims to reduce SKU proliferation and simplify onboarding for large accounts.", "url": "https://techcrunch.com/2026/ms-azure-ai-overhaul", "published_at": "2026-04-14T07:00:00Z"},
+    {"source": "verge", "title": "Microsoft's Azure AI gets a long-awaited unification, merging Foundry with Studio under one roof in a move that clearly targets AWS Bedrock and Google Vertex AI", "summary": "Analysts view the merger as a response to competitive pressure from AWS and Google Cloud.", "url": "https://theverge.com/2026/azure-ai-unified", "published_at": "2026-04-14T07:30:00Z"}
+  ],
+  "centroid_terms": {"microsoft": 0.88, "azure": 0.6, "ai": 0.5, "cloud": 0.35},
+  "expected_hashtags_subset": ["#Microsoft"]
+}
