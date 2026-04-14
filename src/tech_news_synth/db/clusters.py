@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from tech_news_synth.db.models import Cluster
@@ -48,4 +48,18 @@ def get_clusters_for_cycle(session: Session, cycle_id: str) -> list[Cluster]:
     )
 
 
-__all__ = ["get_clusters_for_cycle", "insert_cluster"]
+def update_cluster_chosen(session: Session, cluster_id: int, chosen: bool) -> None:
+    """Flip the ``chosen`` flag on a persisted cluster row (D-12 audit trail).
+
+    Raises ``ValueError`` if the row doesn't exist — caller bug since all
+    candidates are inserted before this is called (D-12 persist-all-first).
+    """
+    result = session.execute(
+        update(Cluster).where(Cluster.id == cluster_id).values(chosen=chosen)
+    )
+    if result.rowcount == 0:
+        raise ValueError(f"cluster_id={cluster_id} not found")
+    session.flush()
+
+
+__all__ = ["get_clusters_for_cycle", "insert_cluster", "update_cluster_chosen"]
