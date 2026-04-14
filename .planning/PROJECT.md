@@ -97,5 +97,17 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
+## Current State
+
+- **Shipped:** v1.0 on 2026-04-14 — 8 phases, 53 requirements, 149 commits, 394 unit + 119 integration tests green
+- **Live on:** @ByteRelevant (pay-per-use tier)
+- **Observed cost:** $0.03/post → ~$10.80/mo at target cadence (2× under the $20-50 envelope)
+- **Operator mode:** scheduler ticks every 2h; 3 CLIs (`replay`, `post-now`, `source-health`); `docs/DEPLOY.md` runbook
+- **Archived:** `.planning/milestones/v1.0-ROADMAP.md` + `v1.0-REQUIREMENTS.md`
+
+## Next Milestone Goals
+
+Not yet scoped. Run `/gsd-new-milestone` when ready to plan v1.1 (iteration/hardening) or v2.0 (new capabilities). Starting material in `.planning/ROADMAP.md` "Next" section pulls deferred ideas from v1.0 phase CONTEXTs.
+
 ---
-*Last updated: 2026-04-12 after research phase revisions (X pay-per-use, Haiku 4.5, APScheduler)*
+*Last updated: 2026-04-14 on v1.0 milestone completion (previous: 2026-04-12 research-phase revisions)*
