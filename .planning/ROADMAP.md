@@ -116,7 +116,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 07-01-PLAN.md — Scaffolding + pure modules (Settings fields + bearer-rejection validator, tweepy client factory with timeout wrap, cap checks, stale-pending guard, posts-repo extensions + update_posted cost_usd bug fix)
-- [ ] 07-02-PLAN.md — run_publish orchestrator (posted/failed/dry_run branches) + scheduler D-12 wiring + compose smoke checkpoint under DRY_RUN=1
+- [x] 07-02-PLAN.md — run_publish orchestrator (posted/failed/dry_run branches) + scheduler D-12 wiring + compose smoke checkpoint under DRY_RUN=1
 
 ### Phase 8: End-to-End + Hardening
 **Goal**: Wire `run_cycle()` end-to-end, prove it with a 48h dry-run soak, add operator CLIs, and cut over to live posting on @ByteRelevant
