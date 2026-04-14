@@ -1,6 +1,9 @@
 """Cluster candidate ranking (D-09).
 
-Plan 05-01 Task 1 scaffold — Task 3 implements ``rank_candidates``.
+Rank key: ``(-source_count, -most_recent_ts.timestamp(), -weight_sum)``.
+Python's stable sort preserves insertion order for ties, giving
+deterministic behavior when inputs are in a canonical order (D-10).
+Singletons are excluded from the returned candidate list.
 """
 
 from __future__ import annotations
@@ -26,5 +29,13 @@ class ClusterCandidate:
 
 
 def rank_candidates(candidates: list[ClusterCandidate]) -> list[ClusterCandidate]:
-    """Stub — real implementation in Task 3."""
-    raise NotImplementedError("cluster.rank.rank_candidates implemented in Task 3")
+    """Exclude singletons (source_count < 2) and sort by D-09 key."""
+    multi = [c for c in candidates if c.source_count >= 2]
+    return sorted(
+        multi,
+        key=lambda c: (
+            -c.source_count,
+            -c.most_recent_ts.timestamp(),
+            -c.weight_sum,
+        ),
+    )
