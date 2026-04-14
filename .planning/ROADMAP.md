@@ -115,7 +115,7 @@ Plans:
   5. With `DRY_RUN=1`, no X API call happens; instead a `posts` row with `status=dry_run` and the full synthesized text is written for human review
 **Plans**: 2 plans
 Plans:
-- [ ] 07-01-PLAN.md — Scaffolding + pure modules (Settings fields + bearer-rejection validator, tweepy client factory with timeout wrap, cap checks, stale-pending guard, posts-repo extensions + update_posted cost_usd bug fix)
+- [x] 07-01-PLAN.md — Scaffolding + pure modules (Settings fields + bearer-rejection validator, tweepy client factory with timeout wrap, cap checks, stale-pending guard, posts-repo extensions + update_posted cost_usd bug fix)
 - [ ] 07-02-PLAN.md — run_publish orchestrator (posted/failed/dry_run branches) + scheduler D-12 wiring + compose smoke checkpoint under DRY_RUN=1
 
 ### Phase 8: End-to-End + Hardening

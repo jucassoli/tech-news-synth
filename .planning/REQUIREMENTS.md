@@ -76,11 +76,11 @@
 
 ### PUBLISH — X Posting
 
-- [ ] **PUBLISH-01** — Publishing uses `tweepy.Client.create_tweet` with OAuth 1.0a User Context (4 secrets) — bearer-token path explicitly rejected at boot
+- [x] **PUBLISH-01** — Publishing uses `tweepy.Client.create_tweet` with OAuth 1.0a User Context (4 secrets) — bearer-token path explicitly rejected at boot
 - [ ] **PUBLISH-02** — Idempotent posting: a `posts` row with `status=pending` is inserted **before** the X API call; updated to `posted` + `tweet_id` on success, or `failed` with error details on error
 - [ ] **PUBLISH-03** — Rate-limit handling: 429 response reads `x-rate-limit-reset`, logs a structured warning, and skips the remainder of the cycle (does not block the scheduler loop)
-- [ ] **PUBLISH-04** — Local daily cap guard: `MAX_POSTS_PER_DAY` (default 12) counted from `posts.posted_at` in UTC; cycle skips publishing (still logs cluster/synthesis) once the cap is reached
-- [ ] **PUBLISH-05** — Monthly cost cap guard: `MAX_MONTHLY_COST_USD` hard kill-switch based on summed `posts.cost_usd` in the current UTC month
+- [x] **PUBLISH-04** — Local daily cap guard: `MAX_POSTS_PER_DAY` (default 12) counted from `posts.posted_at` in UTC; cycle skips publishing (still logs cluster/synthesis) once the cap is reached
+- [x] **PUBLISH-05** — Monthly cost cap guard: `MAX_MONTHLY_COST_USD` hard kill-switch based on summed `posts.cost_usd` in the current UTC month
 - [ ] **PUBLISH-06** — On dry-run, publisher is short-circuited; the `posts` row is written with `status=dry_run` and the synthesized text for human review
 
 ### OPS — Operator Tools, Observability, Hardening

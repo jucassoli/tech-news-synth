@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-02-PLAN.md tasks 1-2; awaiting Task 3 compose-smoke checkpoint
-last_updated: "2026-04-14T12:56:11.639Z"
+stopped_at: Completed 07-01-PLAN.md; Plan 07-02 next
+last_updated: "2026-04-14T14:51:09.007Z"
 progress:
   total_phases: 8
   completed_phases: 6
-  total_plans: 11
-  completed_plans: 11
-  percent: 100
+  total_plans: 13
+  completed_plans: 12
+  percent: 92
 ---
 
 # tech-news-synth — STATE
@@ -21,18 +21,25 @@ progress:
 
 - **What:** Python agent that every 2h pulls tech news from 5 public feeds (TechCrunch/Verge/Ars RSS + HN Firebase + Reddit r/tech JSON), clusters by TF-IDF title similarity, synthesizes the highest-coverage cluster into one PT-BR tweet via Claude Haiku 4.5, and posts to @ByteRelevant.
 - **Core value:** One post per cycle that highlights the most-covered tech topic without repeating within 48h — signal over noise.
-- **Current focus:** Phase 06 — Synthesis
+- **Current focus:** Phase 07 — Publish
 
 ## Current Position
 
-Phase: 06 (Synthesis) — EXECUTING
+Phase: 07 (Publish) — EXECUTING
 Plan: 2 of 2
 
 - **Milestone:** v1 (initial production-ready agent on @ByteRelevant)
-- **Phase:** 06 — Synthesis (EXECUTING)
-- **Plan:** 06-01 COMPLETE → 06-02 next
-- **Status:** Executing Phase 06
-- **Progress:** [██████████] 100%
+- **Phase:** 07 — Publish (EXECUTING)
+- **Plan:** 07-01 COMPLETE → 07-02 next
+- **Status:** Executing Phase 07
+- **Progress:** [█████████░] 92%
+
+## Decisions
+
+- tweepy 4.16 Client has no `timeout` kwarg; enforce via `functools.partial` monkey-wrap of `client.session.request` (T-07-08)
+- Fixed T-07-07: `update_posted(cost_usd=None)` no longer overwrites existing column value — preserves Phase 6 pre-populated cost
+- PG 16 3-arg `date_trunc('day', now(), 'UTC')` verified working; used for daily/monthly cap queries
+- `update_post_to_posted` / `update_post_to_failed` are thinner than `update_posted` (no cost_usd/centroid params) — D-10 transitions only, cost_usd preserved from Phase 6
 
 ## Performance Metrics
 
@@ -53,6 +60,8 @@ Plan: 2 of 2
 | Phase 04 P02 | 25 | 7 tasks | 14 files |
 | Phase 05 P01 | 40min | 5 tasks | 22 files |
 | Phase 06 P01 | 2700 | 5 tasks | 32 files |
+| Phase 07 P01 | 1080 | 5 tasks | 14 files | 5 | 440 passed (+46 new: 17 unit + 21 integration + reshuffled), 0 regressions |
+| Phase 07 P01 | 1080 | 5 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -89,16 +98,16 @@ Plan: 2 of 2
 
 ### Blockers
 
-- None for Plan 06-02.
-- Plan 01-02 checkpoint (11-step docker compose smoke) still pending operator sign-off — does not block Plan 06-02 development.
+- None for Plan 07-02.
+- Plan 01-02 checkpoint (11-step docker compose smoke) still pending operator sign-off — does not block Plan 07-02 development.
 
 ## Session Continuity
 
-- **Last session:** 2026-04-14T12:56:07.582Z
-- **Last action:** Plan 06-01 executed: pure-core synth toolkit (10 modules) + Settings extension (4 fields + hashtags_config_path) + SelectionResult.winner_centroid plumbing + db helpers (get_articles_by_ids, insert_post) + 10 fixture JSONs + 80 new unit tests (306 total green). Ellipsis-weight pitfall (T-06-07) codified at observed value 2. twitter-text-parser requires `setuptools<81` for pkg_resources.
-- **Stopped At:** Completed 06-02-PLAN.md tasks 1-2; awaiting Task 3 compose-smoke checkpoint
-- **Next action:** Execute Plan 06-02 (synth/orchestrator.py::run_synthesis composition, scheduler wiring, __main__ anthropic client instantiation, integration tests, 10-post fixture spot-check).
-- **Resume command:** `/gsd-execute-phase 06`
+- **Last session:** 2026-04-14T14:51:09.005Z
+- **Last action:** Plan 07-01 executed: publish/ package scaffolded (models, client, caps, idempotency; orchestrator stubbed for 07-02), Settings extended with 4 Phase 7 fields + bearer-rejection validator (D-01), db/posts.py bug fix (T-07-07 cost_usd preservation) + 5 new helpers. 46 new tests (17 unit + 21 integration + 8 config). Total: 440 passed.
+- **Stopped At:** Completed 07-01-PLAN.md; Plan 07-02 next
+- **Next action:** Execute Plan 07-02 (publish/orchestrator.py::run_publish composition, scheduler wiring for check_caps + run_publish, integration tests).
+- **Resume command:** `/gsd-execute-phase 07`
 
 ---
 *STATE.md is the single source of truth for "where are we right now." Updated at phase transitions and plan completion.*
