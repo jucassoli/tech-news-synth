@@ -1,19 +1,28 @@
-"""Claude Haiku 4.5 pricing constants — stub for Plan 06-01 Task 1.
+"""Claude Haiku 4.5 pricing constants + cost helper (T-06-03 mitigation).
 
-Real ``compute_cost_usd`` body lands in Plan 06-01 Task 5.
+The model id is a literal string — NEVER an alias like ``haiku-latest``.
+A future SDK could silently remap an alias; the literal plus the unit-test
+equality assertion makes drift loud (T-06-03).
+
+Pricing last verified 2026-04-13 — see .planning/intel/x-api-baseline.md.
 """
 
 from __future__ import annotations
 
-# Stub constants exposed early so test imports succeed. Task 5 proves the
-# exact values via unit tests.
+# T-06-03: literal model id (not an alias). Unit test asserts string equality.
 MODEL_ID: str = "claude-haiku-4-5"  # last verified 2026-04-13
+
+# Haiku 4.5 pricing — last verified 2026-04-13.
 HAIKU_INPUT_USD_PER_MTOK: float = 1.00
 HAIKU_OUTPUT_USD_PER_MTOK: float = 5.00
 
 
-def compute_cost_usd(input_tokens: int, output_tokens: int) -> float:  # noqa: ARG001
-    raise NotImplementedError("Plan 06-01 Task 5 implements compute_cost_usd")
+def compute_cost_usd(input_tokens: int, output_tokens: int) -> float:
+    """Return USD cost for a single Haiku call given token counts (SYNTH-07)."""
+    return (
+        (input_tokens / 1_000_000.0) * HAIKU_INPUT_USD_PER_MTOK
+        + (output_tokens / 1_000_000.0) * HAIKU_OUTPUT_USD_PER_MTOK
+    )
 
 
 __all__ = [
