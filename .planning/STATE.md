@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 07-02-PLAN.md tasks 1-2; Task 3 (checkpoint:human-verify) awaiting operator compose smoke"
-last_updated: "2026-04-14T15:04:53.260Z"
+stopped_at: "Completed 08-01-PLAN.md (cycle_summary + 3 CLIs). Plan 08-02 next (soak + cutover + DEPLOY.md)."
+last_updated: "2026-04-14T17:37:08Z"
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_plans: 16
+  completed_plans: 14
+  percent: 88
 ---
 
 # tech-news-synth — STATE
@@ -21,21 +21,24 @@ progress:
 
 - **What:** Python agent that every 2h pulls tech news from 5 public feeds (TechCrunch/Verge/Ars RSS + HN Firebase + Reddit r/tech JSON), clusters by TF-IDF title similarity, synthesizes the highest-coverage cluster into one PT-BR tweet via Claude Haiku 4.5, and posts to @ByteRelevant.
 - **Core value:** One post per cycle that highlights the most-covered tech topic without repeating within 48h — signal over noise.
-- **Current focus:** Phase 07 — Publish
+- **Current focus:** Phase 08 — End-to-End + Hardening
 
 ## Current Position
 
-Phase: 07 (Publish) — EXECUTING
+Phase: 08 (End-to-End + Hardening) — EXECUTING
 Plan: 2 of 2
 
 - **Milestone:** v1 (initial production-ready agent on @ByteRelevant)
-- **Phase:** 07 — Publish (EXECUTING)
-- **Plan:** 07-01 COMPLETE → 07-02 next
-- **Status:** Executing Phase 07
-- **Progress:** [██████████] 100%
+- **Phase:** 08 — End-to-End + Hardening (EXECUTING)
+- **Plan:** 08-01 COMPLETE → 08-02 next (operator tooling + DEPLOY.md)
+- **Status:** Executing Phase 08
+- **Progress:** [█████████░] 88%
 
 ## Decisions
 
+- Phase 8 D-04/D-06: `cycle_summary` emitted from scheduler outer finally AFTER commit (not inside finish_cycle); 10 fields including `status` + `dry_run`.
+- Phase 8 D-12: `run_synthesis(..., *, persist=True)` keyword-only. persist=False returns post_id=None, status='replay'; enables replay CLI reuse of orchestrator.
+- Phase 8 D-06 field 6: `char_budget_used = weighted_len(final_text)` now in synth counts_patch (reachable even when persist=False).
 - tweepy 4.16 Client has no `timeout` kwarg; enforce via `functools.partial` monkey-wrap of `client.session.request` (T-07-08)
 - Fixed T-07-07: `update_posted(cost_usd=None)` no longer overwrites existing column value — preserves Phase 6 pre-populated cost
 - PG 16 3-arg `date_trunc('day', now(), 'UTC')` verified working; used for daily/monthly cap queries
@@ -63,6 +66,7 @@ Plan: 2 of 2
 | Phase 07 P01 | 1080 | 5 tasks | 14 files | 5 | 440 passed (+46 new: 17 unit + 21 integration + reshuffled), 0 regressions |
 | Phase 07 P01 | 1080 | 5 tasks | 14 files |
 | Phase 07 P02 | 9 | 3 tasks | 11 files |
+| Phase 08 P01 | 873 | 5 tasks | 17 files | 6 | 381 unit + 19 Phase 8 integration passed (+32 new); 0 regressions |
 
 ## Accumulated Context
 
@@ -104,11 +108,11 @@ Plan: 2 of 2
 
 ## Session Continuity
 
-- **Last session:** 2026-04-14T15:04:53.257Z
-- **Last action:** Plan 07-01 executed: publish/ package scaffolded (models, client, caps, idempotency; orchestrator stubbed for 07-02), Settings extended with 4 Phase 7 fields + bearer-rejection validator (D-01), db/posts.py bug fix (T-07-07 cost_usd preservation) + 5 new helpers. 46 new tests (17 unit + 21 integration + 8 config). Total: 440 passed.
-- **Stopped At:** Completed 07-02-PLAN.md tasks 1-2; Task 3 (checkpoint:human-verify) awaiting operator compose smoke
-- **Next action:** Execute Plan 07-02 (publish/orchestrator.py::run_publish composition, scheduler wiring for check_caps + run_publish, integration tests).
-- **Resume command:** `/gsd-execute-phase 07`
+- **Last session:** 2026-04-14T17:37:08Z
+- **Last action:** Plan 08-01 executed: `cycle_summary` structlog event (10 fields, post-commit), `replay`/`post-now`/`source-health` CLIs implemented (replace Phase 1 D-06 stubs), `run_synthesis(persist=False)` kwarg for replay reuse, `char_budget_used` propagated through counts_patch. 32 new tests (18 unit + 14 integration). 381 unit + 113 integration passed.
+- **Stopped At:** Completed 08-01-PLAN.md (cycle_summary + 3 CLIs). Plan 08-02 next (soak + cutover + DEPLOY.md).
+- **Next action:** Execute Plan 08-02 (scripts/soak_monitor.py, scripts/cutover_verify.py, docs/DEPLOY.md, intel templates).
+- **Resume command:** `/gsd-execute-phase 08`
 
 ---
 *STATE.md is the single source of truth for "where are we right now." Updated at phase transitions and plan completion.*

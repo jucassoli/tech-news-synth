@@ -130,7 +130,7 @@ Plans:
   5. Post-soak, the live cutover produces at least 12 real tweets in the first 24h, zero duplicates within 48h (verified by centroid audit), and the monthly-cost guard's observed USD matches Phase 3's baseline within an acceptable margin
 **Plans:** 2 plans
 Plans:
-- [ ] 08-01-PLAN.md — cycle_summary emit + source-health / replay / post-now CLIs (OPS-01/02/03/04)
+- [x] 08-01-PLAN.md — cycle_summary emit + source-health / replay / post-now CLIs (OPS-01/02/03/04)
 - [ ] 08-02-PLAN.md — soak_monitor + cutover_verify scripts + DEPLOY.md runbook + operator checkpoint (OPS-05/06 + SC-5)
 
 ## Progress

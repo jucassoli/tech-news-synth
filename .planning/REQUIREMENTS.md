@@ -85,10 +85,10 @@
 
 ### OPS — Operator Tools, Observability, Hardening
 
-- [ ] **OPS-01** — Per-cycle `cycle_summary` log line (JSON) emitted with: cycle_id, duration, articles_fetched_per_source, cluster_count, chosen_cluster_id, char_budget_used, token_cost_usd, post_status
-- [ ] **OPS-02** — `replay` CLI accepts a `--cycle-id` and re-runs synthesis against the stored cluster without publishing (for offline prompt iteration)
-- [ ] **OPS-03** — `post-now` CLI forces an off-cadence cycle; respects all guardrails (kill switch, dry-run, daily cap, anti-repeat)
-- [ ] **OPS-04** — `source-health` CLI lists each source's last fetch status, consecutive failure count, and disabled/enabled state
+- [x] **OPS-01** — Per-cycle `cycle_summary` log line (JSON) emitted with: cycle_id, duration, articles_fetched_per_source, cluster_count, chosen_cluster_id, char_budget_used, token_cost_usd, post_status
+- [x] **OPS-02** — `replay` CLI accepts a `--cycle-id` and re-runs synthesis against the stored cluster without publishing (for offline prompt iteration)
+- [x] **OPS-03** — `post-now` CLI forces an off-cadence cycle; respects all guardrails (kill switch, dry-run, daily cap, anti-repeat)
+- [x] **OPS-04** — `source-health` CLI lists each source's last fetch status, consecutive failure count, and disabled/enabled state
 - [ ] **OPS-05** — `docker compose up -d` on a fresh Ubuntu VPS produces a working agent within a documented runbook (`docs/DEPLOY.md`)
 - [ ] **OPS-06** — 48-hour soak in `DRY_RUN=1` mode passes with zero unhandled exceptions and at least one cycle per 2h window before live cutover
 
