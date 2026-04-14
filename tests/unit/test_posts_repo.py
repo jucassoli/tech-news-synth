@@ -1,18 +1,29 @@
 """Unit tests for tech_news_synth.db.posts (Phase 7 Plan 07-01 Task 2).
 
-Regression + repo-helper tests populated in Task 2. This stub ensures the
-module imports cleanly and the placeholder collects.
+The actual DB-backed tests live in tests/integration/test_posts_repo_phase7.py
+(ARRAY + JSONB columns require a real Postgres backend). This file exists so
+the contract in PLAN.md (tests/unit/test_posts_repo.py) is not empty and
+verifies the new symbols are importable.
 """
 
 from __future__ import annotations
 
-import pytest
 
-pytest.importorskip("tech_news_synth.db.posts")
+def test_phase7_helpers_importable():
+    from tech_news_synth.db.posts import (
+        count_posted_today,
+        get_stale_pending_posts,
+        sum_monthly_cost_usd,
+        update_post_to_failed,
+        update_post_to_posted,
+    )
 
-
-def test_stub_collects():
-    """Placeholder: real tests land in Task 2."""
-    from tech_news_synth.db import posts
-
-    assert posts is not None
+    # All five helpers must be callable attributes.
+    for fn in (
+        update_post_to_posted,
+        update_post_to_failed,
+        get_stale_pending_posts,
+        count_posted_today,
+        sum_monthly_cost_usd,
+    ):
+        assert callable(fn)

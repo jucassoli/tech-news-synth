@@ -62,11 +62,16 @@ def update_posted(
     cost_usd: float | Decimal | None,
     centroid_bytes: bytes | None = None,
 ) -> Post:
-    """Mark a post ``status='posted'``; sets tweet_id, cost, posted_at, centroid."""
+    """Mark a post ``status='posted'``; sets tweet_id, cost, posted_at, centroid.
+
+    When ``cost_usd`` is None, the existing column value is preserved
+    (Phase 6 callers pre-populate it; T-07-07 regression fix).
+    """
     post = session.execute(select(Post).where(Post.id == post_id)).scalar_one()
     post.status = "posted"
     post.tweet_id = tweet_id
-    post.cost_usd = Decimal(str(cost_usd)) if cost_usd is not None else None
+    if cost_usd is not None:
+        post.cost_usd = Decimal(str(cost_usd))
     post.posted_at = datetime.now(UTC)
     if centroid_bytes is not None:
         post.theme_centroid = centroid_bytes
@@ -173,12 +178,97 @@ def insert_post(
     return post
 
 
+def update_post_to_posted(
+    session: Session,
+    post_id: int,
+    tweet_id: str,
+    posted_at: datetime,
+) -> None:
+    """Phase 7 D-10 success transition. Does NOT touch cost_usd.
+
+    Clears ``error_detail`` to NULL; sets ``status='posted'``, ``tweet_id``,
+    ``posted_at``. ``cost_usd`` is preserved (Phase 6 pre-populated it).
+    """
+    post = session.execute(select(Post).where(Post.id == post_id)).scalar_one()
+    post.status = "posted"
+    post.tweet_id = tweet_id
+    post.posted_at = posted_at
+    post.error_detail = None
+    session.flush()
+
+
+def update_post_to_failed(
+    session: Session,
+    post_id: int,
+    error_detail_json: str,
+) -> None:
+    """Phase 7 D-10 failure transition. Does NOT touch cost_usd.
+
+    Sets ``status='failed'``, ``error_detail=<json str>``; leaves
+    ``posted_at`` at existing value.
+    """
+    post = session.execute(select(Post).where(Post.id == post_id)).scalar_one()
+    post.status = "failed"
+    post.error_detail = error_detail_json
+    session.flush()
+
+
+def get_stale_pending_posts(
+    session: Session,
+    cutoff_dt: datetime,
+) -> list[Post]:
+    """D-02 stale-pending guard: rows with status='pending' and created_at < cutoff."""
+    return list(
+        session.execute(
+            select(Post)
+            .where(Post.status == "pending")
+            .where(Post.created_at < cutoff_dt)
+            .order_by(Post.id.asc())
+        )
+        .scalars()
+        .all()
+    )
+
+
+def count_posted_today(session: Session) -> int:
+    """D-05 daily cap query — COUNT posted rows with posted_at in today's UTC day."""
+    from sqlalchemy import func
+
+    return session.execute(
+        select(func.count())
+        .select_from(Post)
+        .where(Post.status == "posted")
+        .where(Post.posted_at >= func.date_trunc("day", func.now(), "UTC"))
+    ).scalar_one()
+
+
+def sum_monthly_cost_usd(session: Session) -> float:
+    """D-06 monthly cost cap — SUM cost_usd over posted+failed rows in current UTC month.
+
+    EXCLUDES ``dry_run`` (test mode doesn't eat budget). COALESCEs NULL to 0.
+    Returns float; caller compares to ``Settings.max_monthly_cost_usd`` (float).
+    """
+    from sqlalchemy import func
+
+    result = session.execute(
+        select(func.coalesce(func.sum(Post.cost_usd), 0))
+        .where(Post.status.in_(["posted", "failed"]))
+        .where(Post.created_at >= func.date_trunc("month", func.now(), "UTC"))
+    ).scalar_one()
+    return float(result)
+
+
 __all__ = [
     "PostWithTexts",
+    "count_posted_today",
     "get_recent_posts_with_source_texts",
+    "get_stale_pending_posts",
     "insert_pending",
     "insert_post",
     "read_centroid",
+    "sum_monthly_cost_usd",
     "update_failed",
+    "update_post_to_failed",
+    "update_post_to_posted",
     "update_posted",
 ]
