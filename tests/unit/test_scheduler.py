@@ -19,7 +19,49 @@ from apscheduler.triggers.cron import CronTrigger
 from tech_news_synth import scheduler as scheduler_mod
 from tech_news_synth.config import Settings, load_settings
 from tech_news_synth.logging import configure_logging, get_logger
+from tech_news_synth.publish.models import CapCheckResult, PublishResult
 from tech_news_synth.scheduler import build_scheduler, run_cycle
+
+
+@pytest.fixture(autouse=True)
+def mock_phase7_collaborators(mocker, request):
+    """Phase 7 default mocks so existing Phase 1-6 tests don't regress.
+
+    Every scheduler test gets safe defaults for ``cleanup_stale_pending``,
+    ``check_caps``, ``build_x_client``, and ``run_publish``. Tests that need
+    to exercise the Phase 7 wiring override these via ``mocker.patch``.
+    """
+    if request.node.get_closest_marker("no_phase7_mock"):
+        yield None
+        return
+
+    cleanup = mocker.patch("tech_news_synth.scheduler.cleanup_stale_pending", return_value=0)
+    caps = mocker.patch(
+        "tech_news_synth.scheduler.check_caps",
+        return_value=CapCheckResult(
+            daily_count=0,
+            daily_reached=False,
+            monthly_cost_usd=0.0,
+            monthly_cost_reached=False,
+            skip_synthesis=False,
+        ),
+    )
+    build_x = mocker.patch(
+        "tech_news_synth.scheduler.build_x_client", return_value=mocker.MagicMock(name="x_client")
+    )
+    publish = mocker.patch(
+        "tech_news_synth.scheduler.run_publish",
+        return_value=PublishResult(
+            post_id=7,
+            status="posted",
+            tweet_id="X1",
+            attempts=1,
+            elapsed_ms=10,
+            error_detail=None,
+            counts_patch={"publish_status": "posted", "tweet_id": "X1"},
+        ),
+    )
+    yield cleanup, caps, build_x, publish
 
 
 @pytest.fixture
@@ -194,8 +236,11 @@ def test_run_cycle_calls_run_ingest_with_counts(
     fake_client.close.assert_called_once()
 
     # Counts forwarded to finish_cycle (empty counts_patch merges to identity).
+    # Phase 7 adds publish_status + stale_pending_cleaned on top — check subset.
     _, finish_kwargs = finish.call_args
-    assert finish_kwargs["counts"] == fake_counts
+    counts = finish_kwargs["counts"]
+    for k, v in fake_counts.items():
+        assert counts[k] == v
     assert finish_kwargs["status"] == "ok"
 
 
@@ -276,7 +321,7 @@ def _empty_selection(mocker):
     )
 
 
-def _patch_synth(mocker, counts_patch: dict | None = None):
+def _patch_synth(mocker, counts_patch: dict | None = None, status: str = "pending"):
     """Patch scheduler.run_synthesis + anthropic.Anthropic to safe mocks."""
     mocker.patch("tech_news_synth.scheduler.anthropic.Anthropic")
     mocker.patch(
@@ -284,18 +329,19 @@ def _patch_synth(mocker, counts_patch: dict | None = None):
         return_value=mocker.MagicMock(name="allowlist"),
     )
     synth_result = mocker.MagicMock(
-        counts_patch=counts_patch if counts_patch is not None else {
+        status=status,
+        counts_patch=counts_patch
+        if counts_patch is not None
+        else {
             "synth_attempts": 1,
             "synth_truncated": False,
             "synth_input_tokens": 100,
             "synth_output_tokens": 40,
             "synth_cost_usd": 0.000038,
             "post_id": 7,
-        }
+        },
     )
-    return mocker.patch(
-        "tech_news_synth.scheduler.run_synthesis", return_value=synth_result
-    )
+    return mocker.patch("tech_news_synth.scheduler.run_synthesis", return_value=synth_result)
 
 
 def test_run_cycle_calls_run_clustering_after_ingest(
@@ -306,9 +352,7 @@ def test_run_cycle_calls_run_clustering_after_ingest(
     ingest_counts = {"articles_upserted": 10, "sources_ok": 3}
 
     parent = mocker.MagicMock()
-    run_ingest = mocker.patch(
-        "tech_news_synth.scheduler.run_ingest", return_value=ingest_counts
-    )
+    run_ingest = mocker.patch("tech_news_synth.scheduler.run_ingest", return_value=ingest_counts)
     run_clustering = mocker.patch(
         "tech_news_synth.scheduler.run_clustering",
         return_value=_canned_selection(mocker),
@@ -452,9 +496,7 @@ def test_scheduler_calls_run_synthesis_when_selection_nonempty(
         return_value=_canned_selection(mocker),
     )
     synth = _patch_synth(mocker)
-    mocker.patch(
-        "tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock()
-    )
+    mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
 
     run_cycle(settings, sources_config=mocker.MagicMock())
 
@@ -475,9 +517,7 @@ def test_scheduler_skips_synthesis_when_empty_window(
         return_value=_empty_selection(mocker),
     )
     synth = _patch_synth(mocker)
-    mocker.patch(
-        "tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock()
-    )
+    mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
 
     run_cycle(settings, sources_config=mocker.MagicMock())
 
@@ -505,9 +545,7 @@ def test_scheduler_calls_synthesis_on_fallback_path(
     )
     mocker.patch("tech_news_synth.scheduler.run_clustering", return_value=sel)
     synth = _patch_synth(mocker)
-    mocker.patch(
-        "tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock()
-    )
+    mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
 
     run_cycle(settings, sources_config=mocker.MagicMock())
     synth.assert_called_once()
@@ -535,12 +573,279 @@ def test_scheduler_anthropic_error_propagates_to_infra_08(
         "tech_news_synth.scheduler.run_synthesis",
         side_effect=RuntimeError("anthropic_boom"),
     )
-    mocker.patch(
-        "tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock()
-    )
+    mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
 
     # must NOT raise
     run_cycle(settings, sources_config=mocker.MagicMock())
 
     _, finish_kwargs = finish.call_args
     assert finish_kwargs["status"] == "error"
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 wiring (Plan 07-02 Task 2): D-12 order, cap-skip, empty, dry_run.
+# ---------------------------------------------------------------------------
+class TestPhase7Wiring:
+    def _common(self, mocker):
+        """Patch ingest + clustering + http_client + synth (posted) defaults."""
+        mocker.patch(
+            "tech_news_synth.scheduler.run_ingest",
+            return_value={"articles_upserted": 1, "sources_ok": 1},
+        )
+        mocker.patch(
+            "tech_news_synth.scheduler.run_clustering",
+            return_value=_canned_selection(mocker),
+        )
+        mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+        return _patch_synth(mocker)
+
+    def test_d12_order(
+        self, settings: Settings, mock_db_in_scheduler, mock_phase7_collaborators, mocker
+    ) -> None:
+        """Revised D-12 order: ingest → cluster → cleanup_stale_pending →
+        check_caps → run_synthesis → build_x_client → run_publish → finish.
+        """
+        _, _, _, finish = mock_db_in_scheduler
+        cleanup, caps, build_x, publish = mock_phase7_collaborators
+
+        ingest = mocker.patch(
+            "tech_news_synth.scheduler.run_ingest",
+            return_value={"articles_upserted": 1, "sources_ok": 1},
+        )
+        cluster = mocker.patch(
+            "tech_news_synth.scheduler.run_clustering",
+            return_value=_canned_selection(mocker),
+        )
+        mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+        synth = _patch_synth(mocker)
+
+        parent = mocker.MagicMock()
+        parent.attach_mock(ingest, "ingest")
+        parent.attach_mock(cluster, "cluster")
+        parent.attach_mock(cleanup, "cleanup")
+        parent.attach_mock(caps, "caps")
+        parent.attach_mock(synth, "synth")
+        parent.attach_mock(build_x, "build_x")
+        parent.attach_mock(publish, "publish")
+        parent.attach_mock(finish, "finish")
+
+        run_cycle(settings, sources_config=mocker.MagicMock())
+
+        names = [c[0] for c in parent.mock_calls]
+        # Assert each collaborator appears in the required order.
+        for a, b in [
+            ("ingest", "cluster"),
+            ("cluster", "cleanup"),
+            ("cleanup", "caps"),
+            ("caps", "synth"),
+            ("synth", "build_x"),
+            ("build_x", "publish"),
+            ("publish", "finish"),
+        ]:
+            assert names.index(a) < names.index(b), f"expected {a} before {b}; got {names!r}"
+
+    def test_cap_skips_synth_and_publish(
+        self, settings: Settings, mock_db_in_scheduler, mock_phase7_collaborators, mocker
+    ) -> None:
+        _, _, _, finish = mock_db_in_scheduler
+        _cleanup, caps, build_x, publish = mock_phase7_collaborators
+
+        caps.return_value = CapCheckResult(
+            daily_count=12,
+            daily_reached=True,
+            monthly_cost_usd=5.0,
+            monthly_cost_reached=False,
+            skip_synthesis=True,
+        )
+
+        mocker.patch(
+            "tech_news_synth.scheduler.run_ingest",
+            return_value={"articles_upserted": 1, "sources_ok": 1},
+        )
+        mocker.patch(
+            "tech_news_synth.scheduler.run_clustering",
+            return_value=_canned_selection(mocker),
+        )
+        mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+        synth = _patch_synth(mocker)
+
+        run_cycle(settings, sources_config=mocker.MagicMock())
+
+        synth.assert_not_called()
+        publish.assert_not_called()
+        build_x.assert_not_called()
+
+        _, finish_kwargs = finish.call_args
+        counts = finish_kwargs["counts"]
+        assert counts["publish_status"] == "capped"
+        assert counts["daily_cap_skipped"] is True
+        assert counts["monthly_cost_capped"] is False
+        assert counts["daily_posts_count"] == 12
+        assert "stale_pending_cleaned" in counts
+
+    def test_cost_cap_skips_synth_and_publish(
+        self, settings: Settings, mock_db_in_scheduler, mock_phase7_collaborators, mocker
+    ) -> None:
+        _, _, _, finish = mock_db_in_scheduler
+        _cleanup, caps, build_x, publish = mock_phase7_collaborators
+
+        caps.return_value = CapCheckResult(
+            daily_count=0,
+            daily_reached=False,
+            monthly_cost_usd=31.0,
+            monthly_cost_reached=True,
+            skip_synthesis=True,
+        )
+
+        mocker.patch(
+            "tech_news_synth.scheduler.run_ingest",
+            return_value={"articles_upserted": 1, "sources_ok": 1},
+        )
+        mocker.patch(
+            "tech_news_synth.scheduler.run_clustering",
+            return_value=_canned_selection(mocker),
+        )
+        mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+        synth = _patch_synth(mocker)
+
+        run_cycle(settings, sources_config=mocker.MagicMock())
+
+        synth.assert_not_called()
+        publish.assert_not_called()
+        build_x.assert_not_called()
+
+        _, finish_kwargs = finish.call_args
+        counts = finish_kwargs["counts"]
+        assert counts["publish_status"] == "capped"
+        assert counts["monthly_cost_capped"] is True
+        assert counts["daily_cap_skipped"] is False
+        assert counts["monthly_cost_usd"] == 31.0
+
+    def test_empty_selection_skips_synth_and_publish(
+        self, settings: Settings, mock_db_in_scheduler, mock_phase7_collaborators, mocker
+    ) -> None:
+        _, _, _, finish = mock_db_in_scheduler
+        _, _, build_x, publish = mock_phase7_collaborators
+
+        mocker.patch(
+            "tech_news_synth.scheduler.run_ingest",
+            return_value={"articles_upserted": 0, "sources_ok": 1},
+        )
+        mocker.patch(
+            "tech_news_synth.scheduler.run_clustering",
+            return_value=_empty_selection(mocker),
+        )
+        mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+        synth = _patch_synth(mocker)
+
+        run_cycle(settings, sources_config=mocker.MagicMock())
+
+        synth.assert_not_called()
+        publish.assert_not_called()
+        build_x.assert_not_called()
+
+        _, finish_kwargs = finish.call_args
+        counts = finish_kwargs["counts"]
+        assert counts["publish_status"] == "empty"
+        assert "stale_pending_cleaned" in counts
+
+    def test_dry_run_builds_no_x_client(
+        self, settings: Settings, mock_db_in_scheduler, mock_phase7_collaborators, mocker
+    ) -> None:
+        _, _, _, finish = mock_db_in_scheduler
+        _, _, build_x, publish = mock_phase7_collaborators
+
+        publish.return_value = PublishResult(
+            post_id=7,
+            status="dry_run",
+            tweet_id=None,
+            attempts=0,
+            elapsed_ms=0,
+            error_detail=None,
+            counts_patch={"publish_status": "dry_run", "tweet_id": None},
+        )
+
+        mocker.patch(
+            "tech_news_synth.scheduler.run_ingest",
+            return_value={"articles_upserted": 1, "sources_ok": 1},
+        )
+        mocker.patch(
+            "tech_news_synth.scheduler.run_clustering",
+            return_value=_canned_selection(mocker),
+        )
+        mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+        _patch_synth(mocker, status="dry_run")
+
+        run_cycle(settings, sources_config=mocker.MagicMock())
+
+        # build_x_client NOT called in dry_run path.
+        build_x.assert_not_called()
+        publish.assert_called_once()
+        # run_publish called with x_client=None.
+        pub_args = publish.call_args.args
+        assert pub_args[4] is None
+
+        _, finish_kwargs = finish.call_args
+        counts = finish_kwargs["counts"]
+        assert counts["publish_status"] == "dry_run"
+
+    def test_posted_happy_path_wires_x_client(
+        self, settings: Settings, mock_db_in_scheduler, mock_phase7_collaborators, mocker
+    ) -> None:
+        _, _, _, finish = mock_db_in_scheduler
+        _, _, build_x, publish = mock_phase7_collaborators
+
+        mocker.patch(
+            "tech_news_synth.scheduler.run_ingest",
+            return_value={"articles_upserted": 1, "sources_ok": 1},
+        )
+        mocker.patch(
+            "tech_news_synth.scheduler.run_clustering",
+            return_value=_canned_selection(mocker),
+        )
+        mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+        _patch_synth(mocker, status="pending")
+
+        run_cycle(settings, sources_config=mocker.MagicMock())
+
+        build_x.assert_called_once()
+        publish.assert_called_once()
+        # run_publish called with the built client
+        built = build_x.return_value
+        assert publish.call_args.args[4] is built
+
+        _, finish_kwargs = finish.call_args
+        assert finish_kwargs["counts"]["publish_status"] == "posted"
+
+    def test_cleanup_stale_pending_always_runs(
+        self, settings: Settings, mock_db_in_scheduler, mock_phase7_collaborators, mocker
+    ) -> None:
+        """cleanup_stale_pending runs even under the capped and empty branches."""
+        _, _, _, finish = mock_db_in_scheduler
+        cleanup, caps, _, _ = mock_phase7_collaborators
+        cleanup.return_value = 3
+
+        # capped branch
+        caps.return_value = CapCheckResult(
+            daily_count=12,
+            daily_reached=True,
+            monthly_cost_usd=0.0,
+            monthly_cost_reached=False,
+            skip_synthesis=True,
+        )
+        mocker.patch(
+            "tech_news_synth.scheduler.run_ingest",
+            return_value={"articles_upserted": 1, "sources_ok": 1},
+        )
+        mocker.patch(
+            "tech_news_synth.scheduler.run_clustering",
+            return_value=_canned_selection(mocker),
+        )
+        mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=mocker.MagicMock())
+        _patch_synth(mocker)
+
+        run_cycle(settings, sources_config=mocker.MagicMock())
+
+        cleanup.assert_called_once()
+        _, finish_kwargs = finish.call_args
+        assert finish_kwargs["counts"]["stale_pending_cleaned"] == 3

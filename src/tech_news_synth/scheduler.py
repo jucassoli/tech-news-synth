@@ -33,6 +33,12 @@ from tech_news_synth.ingest.http import build_http_client
 from tech_news_synth.ingest.orchestrator import run_ingest
 from tech_news_synth.killswitch import is_paused
 from tech_news_synth.logging import get_logger
+from tech_news_synth.publish import (
+    build_x_client,
+    check_caps,
+    cleanup_stale_pending,
+    run_publish,
+)
 from tech_news_synth.synth.hashtags import HashtagAllowlist, load_hashtag_allowlist
 from tech_news_synth.synth.orchestrator import run_synthesis
 
@@ -99,12 +105,37 @@ def run_cycle(
                 ingest_counts = run_ingest(session, sources_config, http_client, settings)
                 # Phase 5 (D-14): clustering joins the same transaction.
                 selection = run_clustering(session, cycle_id, settings, sources_config)
-                # Phase 6: conditional synthesis — skip on empty window.
+
+                # Phase 7 (D-02): stale-pending guard BEFORE cap check + new publish.
+                stale_pending_cleaned = cleanup_stale_pending(
+                    session, settings.publish_stale_pending_minutes
+                )
+
+                # Phase 7 (D-04): cap check BETWEEN cluster and synth.
+                cap_check = check_caps(session, settings)
+
                 synth_patch: dict[str, object] = {}
-                if (
-                    selection.winner_cluster_id is not None
-                    or selection.fallback_article_id is not None
-                ):
+                publish_patch: dict[str, object] = {}
+
+                if cap_check.skip_synthesis:
+                    log.info(
+                        "daily_or_cost_cap_reached",
+                        daily_count=cap_check.daily_count,
+                        daily_reached=cap_check.daily_reached,
+                        monthly_cost_usd=cap_check.monthly_cost_usd,
+                        monthly_cost_reached=cap_check.monthly_cost_reached,
+                    )
+                    publish_patch = {
+                        "publish_status": "capped",
+                        "daily_cap_skipped": cap_check.daily_reached,
+                        "monthly_cost_capped": cap_check.monthly_cost_reached,
+                        "daily_posts_count": cap_check.daily_count,
+                        "monthly_cost_usd": cap_check.monthly_cost_usd,
+                    }
+                elif selection.winner_cluster_id is None and selection.fallback_article_id is None:
+                    log.info("publish_skipped_empty_selection")
+                    publish_patch = {"publish_status": "empty"}
+                else:
                     if hashtag_allowlist is None:
                         hashtag_allowlist = load_hashtag_allowlist(
                             Path(settings.hashtags_config_path)
@@ -122,7 +153,19 @@ def run_cycle(
                         hashtag_allowlist,
                     )
                     synth_patch = synthesis.counts_patch
-                counts = {**ingest_counts, **selection.counts_patch, **synth_patch}
+
+                    # D-09: build X client only when not dry_run (T-07-11 info-disclosure).
+                    x_client = None if synthesis.status == "dry_run" else build_x_client(settings)
+                    publish = run_publish(session, cycle_id, synthesis, settings, x_client)
+                    publish_patch = publish.counts_patch
+
+                counts = {
+                    **ingest_counts,
+                    **selection.counts_patch,
+                    **synth_patch,
+                    **publish_patch,
+                    "stale_pending_cleaned": stale_pending_cleaned,
+                }
             else:
                 # Phase 1 legacy path (tests monkeypatch _run_cycle_body).
                 _run_cycle_body(settings)
