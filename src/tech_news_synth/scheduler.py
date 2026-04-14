@@ -15,9 +15,11 @@ from __future__ import annotations
 import signal
 import sys
 from datetime import UTC, datetime
+from pathlib import Path
 from types import FrameType
 from typing import TYPE_CHECKING
 
+import anthropic
 from apscheduler.events import EVENT_JOB_ERROR, JobExecutionEvent
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -31,6 +33,8 @@ from tech_news_synth.ingest.http import build_http_client
 from tech_news_synth.ingest.orchestrator import run_ingest
 from tech_news_synth.killswitch import is_paused
 from tech_news_synth.logging import get_logger
+from tech_news_synth.synth.hashtags import HashtagAllowlist, load_hashtag_allowlist
+from tech_news_synth.synth.orchestrator import run_synthesis
 
 if TYPE_CHECKING:
     from tech_news_synth.config import Settings
@@ -51,7 +55,11 @@ def _run_cycle_body(settings: Settings) -> None:
     return None
 
 
-def run_cycle(settings: Settings, sources_config: SourcesConfig | None = None) -> None:
+def run_cycle(
+    settings: Settings,
+    sources_config: SourcesConfig | None = None,
+    hashtag_allowlist: HashtagAllowlist | None = None,
+) -> None:
     """One scheduler tick. Never raises (INFRA-08).
 
     Invariants:
@@ -91,7 +99,30 @@ def run_cycle(settings: Settings, sources_config: SourcesConfig | None = None) -
                 ingest_counts = run_ingest(session, sources_config, http_client, settings)
                 # Phase 5 (D-14): clustering joins the same transaction.
                 selection = run_clustering(session, cycle_id, settings, sources_config)
-                counts = {**ingest_counts, **selection.counts_patch}
+                # Phase 6: conditional synthesis — skip on empty window.
+                synth_patch: dict[str, object] = {}
+                if (
+                    selection.winner_cluster_id is not None
+                    or selection.fallback_article_id is not None
+                ):
+                    if hashtag_allowlist is None:
+                        hashtag_allowlist = load_hashtag_allowlist(
+                            Path(settings.hashtags_config_path)
+                        )
+                    anthropic_client = anthropic.Anthropic(
+                        api_key=settings.anthropic_api_key.get_secret_value(),
+                    )
+                    synthesis = run_synthesis(
+                        session,
+                        cycle_id,
+                        selection,
+                        settings,
+                        sources_config,
+                        anthropic_client,
+                        hashtag_allowlist,
+                    )
+                    synth_patch = synthesis.counts_patch
+                counts = {**ingest_counts, **selection.counts_patch, **synth_patch}
             else:
                 # Phase 1 legacy path (tests monkeypatch _run_cycle_body).
                 _run_cycle_body(settings)
@@ -132,11 +163,15 @@ def _job_error_listener(event: JobExecutionEvent) -> None:
 def build_scheduler(
     settings: Settings,
     sources_config: SourcesConfig | None = None,
+    hashtag_allowlist: HashtagAllowlist | None = None,
 ) -> BlockingScheduler:
     """Return a configured BlockingScheduler with one job (``run_cycle``).
 
     D-07: ``next_run_time=datetime.now(timezone.utc)`` makes the first tick
     fire immediately on process start; subsequent ticks follow the cron.
+
+    ``hashtag_allowlist`` loaded once at boot (Phase 6) and passed into each
+    cycle via job kwargs so cycles never hit disk for config.
     """
     scheduler = BlockingScheduler(
         timezone=UTC,
@@ -146,7 +181,11 @@ def build_scheduler(
     scheduler.add_job(
         run_cycle,
         CronTrigger(hour=f"*/{settings.interval_hours}", timezone=UTC),
-        kwargs={"settings": settings, "sources_config": sources_config},
+        kwargs={
+            "settings": settings,
+            "sources_config": sources_config,
+            "hashtag_allowlist": hashtag_allowlist,
+        },
         id="run_cycle",
         replace_existing=True,
         next_run_time=datetime.now(UTC),  # D-07 first-tick-on-boot
@@ -169,16 +208,25 @@ def _install_signal_handlers(scheduler: BlockingScheduler) -> None:
     signal.signal(signal.SIGINT, _shutdown)
 
 
-def run(settings: Settings, *, sources_config: SourcesConfig | None = None) -> None:
+def run(
+    settings: Settings,
+    *,
+    sources_config: SourcesConfig | None = None,
+    hashtag_allowlist: HashtagAllowlist | None = None,
+) -> None:
     """Entrypoint invoked by ``__main__.py`` when no subcommand is given.
 
     NOTE: ``configure_logging`` and ``init_engine`` are now called by
     ``__main__._dispatch_scheduler`` BEFORE this function so alembic + DB
-    bootstrap flow through the JSON pipeline (D-01). ``sources_config`` is
-    loaded + validated by ``__main__`` before entering ``run`` (INGEST-01
-    fail-fast at boot).
+    bootstrap flow through the JSON pipeline (D-01). ``sources_config`` and
+    ``hashtag_allowlist`` are loaded + validated by ``__main__`` before
+    entering ``run`` (INGEST-01 / T-06-15 fail-fast at boot).
     """
-    scheduler = build_scheduler(settings, sources_config=sources_config)
+    scheduler = build_scheduler(
+        settings,
+        sources_config=sources_config,
+        hashtag_allowlist=hashtag_allowlist,
+    )
     _install_signal_handlers(scheduler)
     log.info(
         "scheduler_starting",

@@ -32,8 +32,9 @@ def _dispatch_scheduler() -> int:
     from tech_news_synth.db.migrations import run_migrations
     from tech_news_synth.db.session import init_engine
     from tech_news_synth.ingest.sources_config import load_sources_config
-    from tech_news_synth.logging import configure_logging
+    from tech_news_synth.logging import configure_logging, get_logger
     from tech_news_synth.scheduler import run
+    from tech_news_synth.synth.hashtags import load_hashtag_allowlist
 
     try:
         settings = load_settings()
@@ -52,7 +53,20 @@ def _dispatch_scheduler() -> int:
         # load_sources_config already printed a readable error to stderr.
         return 2
 
-    run(settings, sources_config=sources_config)
+    # T-06-15: fail-fast hashtags.yaml validation at boot.
+    try:
+        hashtag_allowlist = load_hashtag_allowlist(Path(settings.hashtags_config_path))
+    except Exception as e:
+        print(f"hashtags.yaml error ({settings.hashtags_config_path}):\n{e}", file=sys.stderr)
+        return 2
+    log = get_logger(__name__)
+    log.info(
+        "hashtag_allowlist_loaded",
+        topics=len(hashtag_allowlist.topics),
+        default=hashtag_allowlist.default,
+    )
+
+    run(settings, sources_config=sources_config, hashtag_allowlist=hashtag_allowlist)
     return 0
 
 

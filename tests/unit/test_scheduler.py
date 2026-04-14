@@ -169,9 +169,14 @@ def test_run_cycle_calls_run_ingest_with_counts(
     }
     run_ingest = mocker.patch("tech_news_synth.scheduler.run_ingest", return_value=fake_counts)
     # Phase 5: mock run_clustering so this test stays focused on Phase 4 wiring.
+    # Empty selection short-circuits synth so we don't need to mock it here.
     mocker.patch(
         "tech_news_synth.scheduler.run_clustering",
-        return_value=mocker.MagicMock(counts_patch={}),
+        return_value=mocker.MagicMock(
+            winner_cluster_id=None,
+            fallback_article_id=None,
+            counts_patch={},
+        ),
     )
     fake_client = mocker.MagicMock(name="http_client")
     build = mocker.patch("tech_news_synth.scheduler.build_http_client", return_value=fake_client)
