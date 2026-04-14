@@ -32,6 +32,7 @@ def run_migrations() -> None:
     pinned to WARN in alembic.ini (T-02-02).
     """
     cfg = Config(str(_ALEMBIC_INI))
+    cfg.attributes["configure_logger"] = False
     log.info("alembic_upgrade_start", target="head")
     command.upgrade(cfg, "head")
     log.info("alembic_upgrade_done")

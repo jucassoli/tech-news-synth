@@ -29,12 +29,7 @@ def _dispatch_scheduler() -> int:
     from pathlib import Path
 
     from tech_news_synth.config import load_settings
-    from tech_news_synth.db.migrations import run_migrations
-    from tech_news_synth.db.session import init_engine
-    from tech_news_synth.ingest.sources_config import load_sources_config
     from tech_news_synth.logging import configure_logging, get_logger
-    from tech_news_synth.scheduler import run
-    from tech_news_synth.synth.hashtags import load_hashtag_allowlist
 
     try:
         settings = load_settings()
@@ -43,6 +38,15 @@ def _dispatch_scheduler() -> int:
         return 2
 
     configure_logging(settings)
+
+    # Import logging users only after configure_logging() so their
+    # module-level loggers bind to the configured structlog/stdlib pipeline.
+    from tech_news_synth.db.migrations import run_migrations
+    from tech_news_synth.db.session import init_engine
+    from tech_news_synth.ingest.sources_config import load_sources_config
+    from tech_news_synth.scheduler import run
+    from tech_news_synth.synth.hashtags import load_hashtag_allowlist
+
     init_engine(settings)
     run_migrations()
 
