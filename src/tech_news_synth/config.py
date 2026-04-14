@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 import sys
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -67,6 +67,12 @@ class Settings(BaseSettings):
     hashtag_budget_chars: int = Field(default=30, ge=0, le=50)
     hashtags_config_path: str = "/app/config/hashtags.yaml"
 
+    # --- Phase 7 publish (D-11) ---
+    max_posts_per_day: int = Field(default=12, ge=1, le=1000)
+    max_monthly_cost_usd: float = Field(default=30.00, ge=1.0, le=10000.0)
+    publish_stale_pending_minutes: int = Field(default=5, ge=1, le=1440)
+    x_api_timeout_sec: int = Field(default=30, ge=5, le=120)
+
     # --- Secrets (SecretStr — never raw) ---
     anthropic_api_key: SecretStr
     x_consumer_key: SecretStr
@@ -95,6 +101,26 @@ class Settings(BaseSettings):
                 "INTERVAL_HOURS must divide 24 evenly — allowed: 1, 2, 3, 4, 6, 8, 12, 24"
             )
         return v
+
+    @model_validator(mode="after")
+    def _require_x_oauth_secrets(self) -> "Settings":
+        """D-01: reject bearer-only configs at boot (PUBLISH-01)."""
+        missing = [
+            name
+            for name, val in (
+                ("x_consumer_key", self.x_consumer_key),
+                ("x_consumer_secret", self.x_consumer_secret),
+                ("x_access_token", self.x_access_token),
+                ("x_access_token_secret", self.x_access_token_secret),
+            )
+            if not val.get_secret_value()
+        ]
+        if missing:
+            raise ValueError(
+                f"X OAuth 1.0a User Context required — missing/empty secrets: {missing}. "
+                f"Bearer-only auth is not supported (PUBLISH-01)."
+            )
+        return self
 
     # ------------------------------------------------------------------
     # Derived values

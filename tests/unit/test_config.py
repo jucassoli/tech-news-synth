@@ -266,3 +266,54 @@ def test_synthesis_settings_accepts_valid_override(monkeypatch_env, monkeypatch)
     assert s.synthesis_char_budget == 240
     assert s.synthesis_max_retries == 3
     assert s.hashtag_budget_chars == 25
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 — publish settings (D-11) + bearer-only rejection (D-01)
+# ---------------------------------------------------------------------------
+def test_publish_settings_defaults(monkeypatch_env):
+    from tech_news_synth.config import load_settings
+
+    s = load_settings()
+    assert s.max_posts_per_day == 12
+    assert s.max_monthly_cost_usd == 30.00
+    assert s.publish_stale_pending_minutes == 5
+    assert s.x_api_timeout_sec == 30
+
+
+def test_config_rejects_bearer_only(monkeypatch_env, monkeypatch):
+    """PUBLISH-01 / D-01: any empty x_* OAuth secret → ValidationError at boot."""
+    from tech_news_synth.config import load_settings
+
+    monkeypatch.setenv("X_CONSUMER_KEY", "")
+    with pytest.raises(ValidationError) as excinfo:
+        load_settings()
+    assert "x_consumer_key" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("invalid", ["0", "1001"])
+def test_max_posts_per_day_bounds(monkeypatch_env, monkeypatch, invalid):
+    from tech_news_synth.config import load_settings
+
+    monkeypatch.setenv("MAX_POSTS_PER_DAY", invalid)
+    with pytest.raises(ValidationError):
+        load_settings()
+
+
+@pytest.mark.parametrize(
+    "env_var,bad_value",
+    [
+        ("MAX_MONTHLY_COST_USD", "0.5"),
+        ("MAX_MONTHLY_COST_USD", "10001"),
+        ("PUBLISH_STALE_PENDING_MINUTES", "0"),
+        ("PUBLISH_STALE_PENDING_MINUTES", "1441"),
+        ("X_API_TIMEOUT_SEC", "4"),
+        ("X_API_TIMEOUT_SEC", "121"),
+    ],
+)
+def test_publish_settings_rejects_invalid(monkeypatch_env, monkeypatch, env_var, bad_value):
+    from tech_news_synth.config import load_settings
+
+    monkeypatch.setenv(env_var, bad_value)
+    with pytest.raises(ValidationError):
+        load_settings()
