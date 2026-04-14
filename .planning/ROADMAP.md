@@ -113,7 +113,10 @@ Plans:
   3. A 429 response reads `x-rate-limit-reset`, emits a structured warning, and skips the remainder of the cycle cleanly without crashing the scheduler
   4. Once `posts.posted_at` count for the current UTC day reaches `MAX_POSTS_PER_DAY` (default 12), the publisher short-circuits (cluster + synthesis still run and log) and the cycle exits clean; crossing `MAX_MONTHLY_COST_USD` triggers a hard kill-switch
   5. With `DRY_RUN=1`, no X API call happens; instead a `posts` row with `status=dry_run` and the full synthesized text is written for human review
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 07-01-PLAN.md — Scaffolding + pure modules (Settings fields + bearer-rejection validator, tweepy client factory with timeout wrap, cap checks, stale-pending guard, posts-repo extensions + update_posted cost_usd bug fix)
+- [ ] 07-02-PLAN.md — run_publish orchestrator (posted/failed/dry_run branches) + scheduler D-12 wiring + compose smoke checkpoint under DRY_RUN=1
 
 ### Phase 8: End-to-End + Hardening
 **Goal**: Wire `run_cycle()` end-to-end, prove it with a 48h dry-run soak, add operator CLIs, and cut over to live posting on @ByteRelevant
