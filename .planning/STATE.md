@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-01-PLAN.md; Plan 05-02 next (orchestrator + DB helpers + scheduler wiring)
-last_updated: "2026-04-14T01:28:44.969Z"
+stopped_at: Completed 06-01-PLAN.md; Plan 06-02 next (orchestrator + scheduler wiring)
+last_updated: "2026-04-14T12:40:31.628Z"
 progress:
   total_phases: 8
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 8
-  percent: 89
+  completed_phases: 5
+  total_plans: 11
+  completed_plans: 10
+  percent: 91
 ---
 
 # tech-news-synth — STATE
@@ -21,18 +21,18 @@ progress:
 
 - **What:** Python agent that every 2h pulls tech news from 5 public feeds (TechCrunch/Verge/Ars RSS + HN Firebase + Reddit r/tech JSON), clusters by TF-IDF title similarity, synthesizes the highest-coverage cluster into one PT-BR tweet via Claude Haiku 4.5, and posts to @ByteRelevant.
 - **Core value:** One post per cycle that highlights the most-covered tech topic without repeating within 48h — signal over noise.
-- **Current focus:** Phase 05 — Cluster + Rank
+- **Current focus:** Phase 06 — Synthesis
 
 ## Current Position
 
-Phase: 05 (Cluster + Rank) — EXECUTING
+Phase: 06 (Synthesis) — EXECUTING
 Plan: 2 of 2
 
 - **Milestone:** v1 (initial production-ready agent on @ByteRelevant)
-- **Phase:** 05 — Cluster + Rank (EXECUTING)
-- **Plan:** 05-01 COMPLETE → 05-02 next
-- **Status:** Executing Phase 05
-- **Progress:** [█████████░] 89%
+- **Phase:** 06 — Synthesis (EXECUTING)
+- **Plan:** 06-01 COMPLETE → 06-02 next
+- **Status:** Executing Phase 06
+- **Progress:** [█████████░] 91%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Plan: 2 of 2
 | Phase 03-validation-gate P01 | 205 | 5 tasks | 6 files |
 | Phase 04 P02 | 25 | 7 tasks | 14 files |
 | Phase 05 P01 | 40min | 5 tasks | 22 files |
+| Phase 06 P01 | 2700 | 5 tasks | 32 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,10 @@ Plan: 2 of 2
 - Logs: structlog JSON → stdout + Docker volume; `cycle_id` bound per cycle
 - Phase 5 pure-core: PT stopwords stripped in `preprocess()` (not TfidfVectorizer param) — sklearn silently ignores `stop_words` with `analyzer=char_wb` (research P-1)
 - Phase 5 anti-repeat: ONE TF-IDF fit per cycle over combined current+past_posts corpus with `FittedCorpus` slice bookkeeping (D-01); past-post centroids computed from the same feature space as cluster centroids
+- Phase 6 weighted char counting: `twitter-text-parser` wraps `parse_tweet(text).weightedLength` in `synth/charcount.py` (D-04). Setuptools pinned `<81` to keep `pkg_resources` importable for the library.
+- Phase 6 model id: literal `"claude-haiku-4-5"` in `synth/pricing.py` with unit-test equality assertion (T-06-03 mitigation; never an alias like `haiku-latest`).
+- Phase 6 ellipsis weight: twitter-text-parser 3.0.0 reports `weighted_len("\u2026") == 2` (not 1). Truncator reserves the measured value dynamically; gate test asserts real value so upstream drift fails loudly (T-06-07).
+- Phase 6 hashtag selection: `config/hashtags.yaml` allowlist + `select_hashtags` slug-substring match against centroid terms; LLM never picks hashtags (D-11, T-06-05).
 
 ### Open Questions (deferred to phase research)
 
@@ -79,21 +84,21 @@ Plan: 2 of 2
 
 ### Todos (inbox)
 
-- [ ] Execute Plan 05-02 (orchestrator + DB helpers + scheduler wiring + integration tests)
+- [ ] Execute Plan 06-02 (synth orchestrator composition + scheduler wiring + integration tests + 10-post spot-check)
 - [ ] Confirm `.planning/intel/` directory exists (will be created during Phase 3 gate)
 
 ### Blockers
 
-- None for Plan 05-02.
-- Plan 01-02 checkpoint (11-step docker compose smoke) still pending operator sign-off — does not block Plan 05-02 development.
+- None for Plan 06-02.
+- Plan 01-02 checkpoint (11-step docker compose smoke) still pending operator sign-off — does not block Plan 06-02 development.
 
 ## Session Continuity
 
-- **Last session:** 2026-04-14T01:28:44.966Z
-- **Last action:** Plan 05-01 executed: pure-core cluster toolkit (9 modules) + Settings extension + per-source weight + 5 fixtures + 60 new unit tests (221 total green). Research P-1 stopword pitfall codified via preprocessor-level stripping with `vectorizer.stop_words is None` assertion.
-- **Stopped At:** Completed 05-01-PLAN.md; Plan 05-02 next (orchestrator + DB helpers + scheduler wiring)
-- **Next action:** Execute Plan 05-02 (run_clustering orchestrator, get_articles_in_window, get_recent_posts_with_source_texts, update_chosen, scheduler.run_cycle wiring, integration tests).
-- **Resume command:** `/gsd-execute-phase 05`
+- **Last session:** 2026-04-14T12:40:31.625Z
+- **Last action:** Plan 06-01 executed: pure-core synth toolkit (10 modules) + Settings extension (4 fields + hashtags_config_path) + SelectionResult.winner_centroid plumbing + db helpers (get_articles_by_ids, insert_post) + 10 fixture JSONs + 80 new unit tests (306 total green). Ellipsis-weight pitfall (T-06-07) codified at observed value 2. twitter-text-parser requires `setuptools<81` for pkg_resources.
+- **Stopped At:** Completed 06-01-PLAN.md; Plan 06-02 next (orchestrator + scheduler wiring)
+- **Next action:** Execute Plan 06-02 (synth/orchestrator.py::run_synthesis composition, scheduler wiring, __main__ anthropic client instantiation, integration tests, 10-post fixture spot-check).
+- **Resume command:** `/gsd-execute-phase 06`
 
 ---
 *STATE.md is the single source of truth for "where are we right now." Updated at phase transitions and plan completion.*

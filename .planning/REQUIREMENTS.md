@@ -66,12 +66,12 @@
 
 ### SYNTH — Synthesis (Claude Haiku 4.5)
 
-- [ ] **SYNTH-01** — Synthesis calls the `anthropic` SDK with the pinned model id `claude-haiku-4-5` (no aliases)
-- [ ] **SYNTH-02** — Prompt is PT-BR jornalístico neutro; input constrained to cluster's 3–5 articles (titles + summaries only, not full bodies); `max_tokens=150`
-- [ ] **SYNTH-03** — Prompt includes explicit grounding guardrails: "use APENAS informações das manchetes/resumos fornecidos; NÃO invente datas, nomes, citações; mantenha nomes próprios intactos"
+- [x] **SYNTH-01** — Synthesis calls the `anthropic` SDK with the pinned model id `claude-haiku-4-5` (no aliases)
+- [x] **SYNTH-02** — Prompt is PT-BR jornalístico neutro; input constrained to cluster's 3–5 articles (titles + summaries only, not full bodies); `max_tokens=150`
+- [x] **SYNTH-03** — Prompt includes explicit grounding guardrails: "use APENAS informações das manchetes/resumos fornecidos; NÃO invente datas, nomes, citações; mantenha nomes próprios intactos"
 - [ ] **SYNTH-04** — Character budget enforced in Python after the LLM response using a weighted char count (t.co URL fixed at 23, plus hashtag budget); max 2 re-prompt retries with "encurte para N caracteres" before last-resort whitespace-aware truncation with ellipsis
-- [ ] **SYNTH-05** — Hashtag selection pulls 1–2 tags from a curated allowlist in `sources.yaml` (or a separate `hashtags.yaml`); the LLM does not freestyle hashtags
-- [ ] **SYNTH-06** — Final post structure: `<síntese PT-BR> <source-URL> <hashtag(s)>`; always includes the source URL for attribution
+- [x] **SYNTH-05** — Hashtag selection pulls 1–2 tags from a curated allowlist in `sources.yaml` (or a separate `hashtags.yaml`); the LLM does not freestyle hashtags
+- [x] **SYNTH-06** — Final post structure: `<síntese PT-BR> <source-URL> <hashtag(s)>`; always includes the source URL for attribution
 - [ ] **SYNTH-07** — Token usage and USD cost per synthesis call are logged in the cycle summary and stored on the `posts` row
 
 ### PUBLISH — X Posting

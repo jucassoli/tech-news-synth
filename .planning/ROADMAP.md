@@ -100,7 +100,7 @@ Plans:
   4. The final output string follows `<síntese PT-BR> <source-URL> <hashtag(s)>`, always includes the source URL for attribution, and uses 1–2 hashtags selected from an allowlist (not freestyled by the LLM)
   5. Every synthesis call logs `input_tokens`, `output_tokens`, and `cost_usd` in the cycle summary AND writes `cost_usd` to the corresponding `posts` row
 **Plans**: 2 plans
-- [ ] 06-01-PLAN.md — Pure-function synthesis toolkit (charcount, truncate, pickers, hashtags, prompts, Anthropic client wrapper) + Wave 0 scaffold (deps, Settings, SelectionResult extension, DB helpers, 10 fixtures)
+- [x] 06-01-PLAN.md — Pure-function synthesis toolkit (charcount, truncate, pickers, hashtags, prompts, Anthropic client wrapper) + Wave 0 scaffold (deps, Settings, SelectionResult extension, DB helpers, 10 fixtures)
 - [ ] 06-02-PLAN.md — run_synthesis orchestrator composition, scheduler wiring, Anthropic client lifecycle, integration tests, compose smoke checkpoint
 
 ### Phase 7: Publish
