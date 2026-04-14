@@ -86,7 +86,7 @@ Plans:
   5. Every cycle persists a `clusters` audit trail: which cluster won, scores for all candidates, and which were rejected by the anti-repeat filter — queryable for operator inspection
 **Plans:** 2 plans
 Plans:
-- [ ] 05-01-PLAN.md — Pure-core cluster toolkit: Settings + sources.yaml `weight` field, cluster/ package (preprocess with P-1 stopword fix, vectorize, agglomerative cluster, rank, antirepeat, fallback), SelectionResult model, fixtures + unit tests
+- [x] 05-01-PLAN.md — Pure-core cluster toolkit: Settings + sources.yaml `weight` field, cluster/ package (preprocess with P-1 stopword fix, vectorize, agglomerative cluster, rank, antirepeat, fallback), SelectionResult model, fixtures + unit tests
 - [ ] 05-02-PLAN.md — DB helpers (window, past-posts, chosen flag), run_clustering orchestrator (persist-all-first audit, anti-repeat walk, fallback), scheduler wiring with merged counts, integration tests + compose smoke checkpoint
 
 ### Phase 6: Synthesis

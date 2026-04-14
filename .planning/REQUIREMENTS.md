@@ -57,11 +57,11 @@
 ### CLUSTER — Clustering, Ranking, Anti-Repetition
 
 - [ ] **CLUSTER-01** — Clustering operates on articles from the last `CLUSTER_WINDOW_HOURS` (default 6) across all active sources
-- [ ] **CLUSTER-02** — TF-IDF vectorizer uses char n-grams (range 3–5), PT+EN stopwords, `unidecode` normalization; operates on `title + " " + summary`
-- [ ] **CLUSTER-03** — Agglomerative or similar clustering applied with a configurable cosine threshold (default 0.35) producing zero-or-more clusters
-- [ ] **CLUSTER-04** — Winner selected deterministically: primary = count of distinct sources in cluster; tiebreak = recency of most recent article; secondary tiebreak = source-weight sum
+- [x] **CLUSTER-02** — TF-IDF vectorizer uses char n-grams (range 3–5), PT+EN stopwords, `unidecode` normalization; operates on `title + " " + summary`
+- [x] **CLUSTER-03** — Agglomerative or similar clustering applied with a configurable cosine threshold (default 0.35) producing zero-or-more clusters
+- [x] **CLUSTER-04** — Winner selected deterministically: primary = count of distinct sources in cluster; tiebreak = recency of most recent article; secondary tiebreak = source-weight sum
 - [ ] **CLUSTER-05** — Anti-repetition filter: before accepting a winner, compute cosine similarity against centroids of posts in the last 48h; reject if any ≥ 0.5 and fall back to the next best cluster
-- [ ] **CLUSTER-06** — Fallback picker: when no cluster meets threshold, publish the single best-ranked article of the cycle (cadence > strict threshold — per Core Value)
+- [x] **CLUSTER-06** — Fallback picker: when no cluster meets threshold, publish the single best-ranked article of the cycle (cadence > strict threshold — per Core Value)
 - [ ] **CLUSTER-07** — Cluster-selection audit trail persisted per cycle: which cluster won, why (scores), which were rejected by anti-repeat, for operator inspection
 
 ### SYNTH — Synthesis (Claude Haiku 4.5)
