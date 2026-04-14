@@ -18,7 +18,7 @@ from sqlalchemy import func, select
 from tech_news_synth.cli import replay
 from tech_news_synth.db.articles import upsert_batch
 from tech_news_synth.db.clusters import insert_cluster
-from tech_news_synth.db.models import Article, Cluster, Post, RunLog
+from tech_news_synth.db.models import Article, Post, RunLog
 from tech_news_synth.db.run_log import start_cycle
 from tech_news_synth.ingest.sources_config import RssSource, SourcesConfig
 from tech_news_synth.synth.hashtags import HashtagAllowlist
@@ -215,7 +215,7 @@ def test_replay_winner_no_posts_row(db_session, capsys):
 
 
 def test_replay_fallback_cycle(db_session, capsys):
-    cid, art_id = _seed_fallback_cycle(db_session)
+    cid, _art_id = _seed_fallback_cycle(db_session)
     before = _posts_count(db_session)
 
     rc = replay.main(["--cycle-id", cid])

@@ -24,7 +24,10 @@ def _cli_boot(mocker):
     mocker.patch("tech_news_synth.cli.replay.configure_logging")
     mocker.patch("tech_news_synth.cli.replay.init_engine")
     mocker.patch("tech_news_synth.cli.replay.load_sources_config", return_value=mocker.MagicMock())
-    mocker.patch("tech_news_synth.cli.replay.load_hashtag_allowlist", return_value=mocker.MagicMock())
+    mocker.patch(
+        "tech_news_synth.cli.replay.load_hashtag_allowlist",
+        return_value=mocker.MagicMock(),
+    )
     mocker.patch("tech_news_synth.cli.replay.anthropic.Anthropic")
 
     session = mocker.MagicMock()

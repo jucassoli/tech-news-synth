@@ -118,7 +118,7 @@ def run_synthesis(
             )
         selected = pick_articles_for_synthesis(articles_all, max_articles=5)
         source_weights = {
-            getattr(s, "name"): getattr(s, "weight", 1.0)
+            s.name: getattr(s, "weight", 1.0)
             for s in sources_config.sources
         }
         source_url = pick_source_url(selected, source_weights)

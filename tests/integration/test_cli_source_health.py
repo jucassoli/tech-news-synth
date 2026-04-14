@@ -10,12 +10,10 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from tech_news_synth.cli import source_health
-from tech_news_synth.db.models import SourceState
 from tech_news_synth.db.source_state import get_state, mark_disabled, upsert_source
 
 pytestmark = pytest.mark.integration
@@ -38,7 +36,10 @@ def _cli_boot(mocker, db_session, tmp_path):
     mocker.patch("tech_news_synth.cli.source_health.SessionLocal", return_value=session_cm)
 
 
-def _seed(db_session, names=("techcrunch", "verge", "ars_technica", "hacker_news", "reddit_technology")):
+_DEFAULT_NAMES = ("techcrunch", "verge", "ars_technica", "hacker_news", "reddit_technology")
+
+
+def _seed(db_session, names=_DEFAULT_NAMES):
     for n in names:
         upsert_source(db_session, n)
     db_session.flush()

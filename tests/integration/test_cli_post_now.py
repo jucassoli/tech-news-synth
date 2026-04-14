@@ -14,9 +14,7 @@ fixture restarts the SAVEPOINT after every commit.
 
 from __future__ import annotations
 
-import json
 import os
-from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import func, select
@@ -207,7 +205,8 @@ def test_respects_paused(_boot, monkeypatch, capsys):
 
     assert rc == 0
     assert after == before, "paused cycle must write no run_log row"
-    assert "paused" in capsys.readouterr().err.lower() or "skipped" in capsys.readouterr().err.lower()
+    err_low = capsys.readouterr().err.lower()
+    assert "paused" in err_low or "skipped" in err_low
 
 
 def test_run_log_error_exit_1(_boot, mocker):
