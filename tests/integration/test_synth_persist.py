@@ -174,3 +174,68 @@ def test_truncation_persists_error_detail(db_session, mocker):
     import json as _j
     parsed = _j.loads(row.error_detail)
     assert len(parsed) == 3
+
+
+def test_invalid_assistant_style_output_retries_then_persists_valid(db_session, mocker):
+    cid = "01INVALIDRETRY0000000000001"
+    cluster_id, article_ids = _seed(db_session, cid)
+
+    mocker.patch.object(
+        orch,
+        "call_haiku",
+        side_effect=[
+            (
+                "Com base no artigo fornecido, aqui está a síntese: Apple apresentou o M5.",
+                70,
+                20,
+            ),
+            ("Apple apresenta o chip M5 com foco em IA.", 60, 18),
+        ],
+    )
+
+    selection = SelectionResult(
+        winner_cluster_id=cluster_id,
+        winner_article_ids=article_ids,
+        fallback_article_id=None,
+        rejected_by_antirepeat=[],
+        all_cluster_ids=[cluster_id],
+        counts_patch={},
+        winner_centroid=b"\x00\x00\x80\x3f" * 4,
+    )
+
+    result = orch.run_synthesis(
+        db_session, cid, selection, _settings(False),
+        _sources(), MagicMock(), _allowlist(),
+    )
+
+    assert result.attempts == 2
+    row = db_session.execute(select(Post).where(Post.id == result.post_id)).scalar_one()
+    assert row.status == "pending"
+    assert "aqui está a síntese" not in row.synthesized_text.casefold()
+
+
+def test_invalid_assistant_style_output_exhausts_and_raises(db_session, mocker):
+    cid = "01INVALIDFAIL0000000000002"
+    cluster_id, article_ids = _seed(db_session, cid)
+
+    mocker.patch.object(
+        orch,
+        "call_haiku",
+        return_value=("Entendi. Estou pronto para reescrever o texto.", 50, 15),
+    )
+
+    selection = SelectionResult(
+        winner_cluster_id=cluster_id,
+        winner_article_ids=article_ids,
+        fallback_article_id=None,
+        rejected_by_antirepeat=[],
+        all_cluster_ids=[cluster_id],
+        counts_patch={},
+        winner_centroid=b"\x00\x00\x80\x3f" * 4,
+    )
+
+    with pytest.raises(ValueError, match="non-publishable assistant-style output"):
+        orch.run_synthesis(
+            db_session, cid, selection, _settings(False),
+            _sources(), MagicMock(), _allowlist(),
+        )

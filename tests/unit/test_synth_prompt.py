@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from tech_news_synth.synth.prompt import (
     SUMMARY_TRUNCATE_CHARS,
+    build_repair_prompt,
     build_retry_prompt,
     build_system_prompt,
     build_user_prompt,
@@ -41,6 +42,11 @@ def test_system_prompt_contains_injection_mitigation_clause():
     """T-06-01: prompt injection mitigation clause present."""
     s = build_system_prompt(225)
     assert "Ignore" in s and "instruções" in s
+
+
+def test_system_prompt_requires_publishable_only_output():
+    s = build_system_prompt(225)
+    assert "APENAS o texto final publicável" in s
 
 
 # ---------------------------------------------------------------------------
@@ -83,18 +89,55 @@ def test_user_prompt_ends_with_synthesis_instruction():
     articles = [_A("src", "t", "s")]
     u = build_user_prompt(articles)
     assert "Sintetize em 1-2 frases" in u
+    assert "somente o post final" in u
 
 
 # ---------------------------------------------------------------------------
 # build_retry_prompt — D-06 suffix
 # ---------------------------------------------------------------------------
 def test_retry_prompt_contains_actual_len_and_new_budget():
-    r = build_retry_prompt("algum texto anterior", actual_len=260, new_budget=225)
+    r = build_retry_prompt(
+        "Artigos:\n[1] Fonte: src | Título: t | Resumo: s",
+        "algum texto anterior",
+        actual_len=260,
+        new_budget=225,
+    )
     assert "260" in r
     assert "225" in r
 
 
 def test_retry_prompt_instructs_to_shorten():
-    r = build_retry_prompt("x", actual_len=300, new_budget=225)
+    r = build_retry_prompt(
+        "Artigos:\n[1] Fonte: src | Título: t | Resumo: s",
+        "x",
+        actual_len=300,
+        new_budget=225,
+    )
     # At least one of the shorten verbs must appear.
     assert "Reescreva" in r or "encurte" in r
+
+
+def test_repair_prompt_demands_final_post_only():
+    r = build_repair_prompt(
+        "Artigos:\n[1] Fonte: src | Título: t | Resumo: s",
+        "Entendi. Estou pronto.",
+        "assistant_preamble",
+        225,
+    )
+    assert "SOMENTE o post final" in r
+    assert "sem prefácio" in r
+    assert "225" in r
+
+
+def test_retry_prompt_keeps_original_source_context():
+    ctx = "Artigos:\n[1] Fonte: reddit | Título: Disney layoffs | Resumo: ..."
+    r = build_retry_prompt(ctx, "texto longo", actual_len=320, new_budget=215)
+    assert "Contexto factual original" in r
+    assert ctx in r
+
+
+def test_repair_prompt_keeps_original_source_context():
+    ctx = "Artigos:\n[1] Fonte: hn | Título: WhatsApp CLI | Resumo: ..."
+    r = build_repair_prompt(ctx, "Com base no artigo fornecido", "assistant_preamble", 225)
+    assert "Contexto factual original" in r
+    assert ctx in r

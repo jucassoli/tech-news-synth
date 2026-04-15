@@ -48,10 +48,12 @@ from tech_news_synth.logging import get_logger
 from tech_news_synth.synth.article_picker import pick_articles_for_synthesis
 from tech_news_synth.synth.charcount import weighted_len
 from tech_news_synth.synth.client import call_haiku
+from tech_news_synth.synth.guard import explain_invalid_body
 from tech_news_synth.synth.hashtags import HashtagAllowlist, select_hashtags
 from tech_news_synth.synth.models import SynthesisResult
 from tech_news_synth.synth.pricing import compute_cost_usd
 from tech_news_synth.synth.prompt import (
+    build_repair_prompt,
     build_retry_prompt,
     build_system_prompt,
     build_user_prompt,
@@ -125,9 +127,9 @@ def run_synthesis(
         cluster_id = selection.winner_cluster_id
         theme_centroid = selection.winner_centroid  # may be None in legacy cases
         cluster_row = session.get(Cluster, cluster_id)
-        centroid_terms = (
-            dict(cluster_row.centroid_terms) if cluster_row is not None and cluster_row.centroid_terms else {}
-        )
+        centroid_terms = {}
+        if cluster_row is not None and cluster_row.centroid_terms:
+            centroid_terms = dict(cluster_row.centroid_terms)
     else:
         # Fallback path
         article = session.get(Article, selection.fallback_article_id)
@@ -174,6 +176,27 @@ def run_synthesis(
         total_input_tokens += in_tok
         total_output_tokens += out_tok
         last_text = text
+        invalid_reason = explain_invalid_body(text)
+        if invalid_reason is not None:
+            attempt_log.append(
+                {
+                    "attempt": attempt,
+                    "invalid_reason": invalid_reason,
+                    "text_preview": text[:120],
+                }
+            )
+            log.warning(
+                "synth_invalid_candidate",
+                attempt=attempt,
+                invalid_reason=invalid_reason,
+                input_tokens=in_tok,
+                output_tokens=out_tok,
+                text_preview=text[:120],
+            )
+            current_prompt = build_repair_prompt(
+                user_prompt, text, invalid_reason, body_budget
+            )
+            continue
         candidate = format_final_post(text, source_url, hashtags)
         cand_len = weighted_len(candidate)
         attempt_log.append(
@@ -185,13 +208,22 @@ def run_synthesis(
             length=cand_len,
             input_tokens=in_tok,
             output_tokens=out_tok,
+            text_preview=text[:120],
         )
         if cand_len <= 280:
             body_text = text
             break
         # Prepare retry prompt for next iteration
-        current_prompt = build_retry_prompt(text, cand_len, body_budget - 10)
+        current_prompt = build_retry_prompt(
+            user_prompt, text, cand_len, body_budget - 10
+        )
     else:
+        last_invalid_reason = explain_invalid_body(last_text)
+        if last_invalid_reason is not None:
+            raise ValueError(
+                "synthesis returned non-publishable assistant-style output "
+                f"after {max_attempts} attempts: {last_invalid_reason}"
+            )
         # Exhausted attempts — truncate last body to fit remaining budget
         hashtag_block = " ".join(hashtags)
         # Overhead: " " + URL (t.co 23 chars) + optional (" " + hashtag_block)
