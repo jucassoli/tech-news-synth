@@ -13,6 +13,7 @@ from typing import Any
 def pick_fallback(
     articles: list[Any],
     source_weights: dict[str, float],
+    excluded_article_ids: set[int] | None = None,
 ) -> int | None:
     """Return the id of the best-ranked article, or None if empty.
 
@@ -20,13 +21,20 @@ def pick_fallback(
     Missing source weight defaults to 1.0. Missing ``published_at``
     (None) is treated as epoch 0 (oldest).
 
+    ``excluded_article_ids`` lets callers skip articles already published
+    recently. When every candidate is excluded this returns ``None``.
+
     ``articles`` is duck-typed: each element must expose ``source: str``,
     ``published_at: datetime | None``, and ``id: int``.
     """
     if not articles:
         return None
+    excluded = excluded_article_ids or set()
+    eligible = [a for a in articles if a.id not in excluded]
+    if not eligible:
+        return None
     chosen = min(
-        articles,
+        eligible,
         key=lambda a: (
             -source_weights.get(a.source, 1.0),
             -(a.published_at.timestamp() if a.published_at is not None else 0.0),

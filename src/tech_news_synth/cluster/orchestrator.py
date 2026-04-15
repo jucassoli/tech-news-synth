@@ -30,7 +30,10 @@ from tech_news_synth.cluster.rank import ClusterCandidate, rank_candidates
 from tech_news_synth.cluster.vectorize import fit_combined_corpus, top_k_terms
 from tech_news_synth.db.articles import get_articles_in_window
 from tech_news_synth.db.clusters import insert_cluster, update_cluster_chosen
-from tech_news_synth.db.posts import get_recent_posts_with_source_texts
+from tech_news_synth.db.posts import (
+    get_recent_posted_article_ids,
+    get_recent_posts_with_source_texts,
+)
 from tech_news_synth.logging import get_logger
 
 if TYPE_CHECKING:
@@ -53,6 +56,7 @@ def _empty_counts_patch(articles_in_window: int = 0) -> dict[str, object]:
         "rejected_by_antirepeat": [],
         "fallback_used": False,
         "fallback_article_id": None,
+        "fallback_blocked_by_recent_posts": False,
     }
 
 
@@ -85,9 +89,31 @@ def run_clustering(
 
     # Step 2b — P-8: N==1 → fallback directly (can't cluster a single point).
     if len(articles) < 2:
-        fb_id = pick_fallback(articles, source_weights)
-        log.info("cluster_single_article_fallback", fallback_article_id=fb_id)
         patch = _empty_counts_patch(len(articles))
+        recent_article_ids = get_recent_posted_article_ids(
+            session, settings.anti_repeat_window_hours
+        )
+        fb_id = pick_fallback(
+            articles,
+            source_weights,
+            excluded_article_ids=recent_article_ids,
+        )
+        if fb_id is None:
+            patch["fallback_blocked_by_recent_posts"] = True
+            log.info(
+                "cluster_single_article_fallback_blocked",
+                excluded_count=len(recent_article_ids),
+            )
+            return SelectionResult(
+                winner_cluster_id=None,
+                winner_article_ids=None,
+                fallback_article_id=None,
+                rejected_by_antirepeat=[],
+                all_cluster_ids=[],
+                counts_patch=patch,
+            )
+
+        log.info("cluster_single_article_fallback", fallback_article_id=fb_id)
         patch["fallback_used"] = True
         patch["fallback_article_id"] = fb_id
         return SelectionResult(
@@ -210,7 +236,30 @@ def run_clustering(
         )
 
     # Fallback path.
-    fb_id = pick_fallback(articles, source_weights)
+    recent_article_ids = get_recent_posted_article_ids(
+        session, settings.anti_repeat_window_hours
+    )
+    fb_id = pick_fallback(
+        articles,
+        source_weights,
+        excluded_article_ids=recent_article_ids,
+    )
+    if fb_id is None:
+        counts_patch["fallback_blocked_by_recent_posts"] = True
+        log.info(
+            "cluster_fallback_blocked",
+            rejected=rejected,
+            excluded_count=len(recent_article_ids),
+        )
+        return SelectionResult(
+            winner_cluster_id=None,
+            winner_article_ids=None,
+            fallback_article_id=None,
+            rejected_by_antirepeat=rejected,
+            all_cluster_ids=all_cluster_ids,
+            counts_patch=counts_patch,
+        )
+
     counts_patch["fallback_used"] = True
     counts_patch["fallback_article_id"] = fb_id
     log.info("cluster_fallback", fallback_article_id=fb_id, rejected=rejected)

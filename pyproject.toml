@@ -1,6 +1,6 @@
 [project]
 name = "tech-news-synth"
-version = "0.1.1"
+version = "0.2.0"
 description = "Automated PT-BR tech news synthesis agent for @ByteRelevant"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"

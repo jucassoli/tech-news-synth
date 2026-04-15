@@ -73,6 +73,19 @@ def test_missing_source_weight_defaults_to_1_0():
     assert pick_fallback(arts, {"known_src": 0.5}) == 1
 
 
+def test_excluded_article_ids_are_skipped():
+    arts = [
+        FakeArticle(id=1, source="a", published_at=TS),
+        FakeArticle(id=2, source="a", published_at=TS_LATER),
+    ]
+    assert pick_fallback(arts, {"a": 1.0}, excluded_article_ids={2}) == 1
+
+
+def test_all_candidates_excluded_returns_none():
+    arts = [FakeArticle(id=1, source="a", published_at=TS)]
+    assert pick_fallback(arts, {"a": 1.0}, excluded_article_ids={1}) is None
+
+
 def test_slow_day_fixture():
     data = json.loads(
         (

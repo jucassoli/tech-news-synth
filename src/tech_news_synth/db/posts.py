@@ -19,7 +19,7 @@ from typing import Literal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from tech_news_synth.db.models import Article, Cluster, Post
+from tech_news_synth.db.models import Article, Cluster, Post, RunLog
 
 
 @dataclass(frozen=True)
@@ -135,6 +135,46 @@ def get_recent_posts_with_source_texts(session: Session, within_hours: int) -> l
         if texts:
             results.append(PostWithTexts(post_id=post_id, source_texts=texts))
     return results
+
+
+def get_recent_posted_article_ids(session: Session, within_hours: int) -> set[int]:
+    """Return article ids referenced by recently posted tweets.
+
+    This covers both clustered posts and fallback posts recorded via
+    ``run_log.counts['fallback_article_id']``.
+    """
+    cutoff = datetime.now(UTC) - timedelta(hours=within_hours)
+    post_rows = session.execute(
+        select(Post.cluster_id, Post.cycle_id)
+        .where(Post.status == "posted")
+        .where(Post.posted_at.is_not(None))
+        .where(Post.posted_at > cutoff)
+        .order_by(Post.id.asc())
+    ).all()
+
+    if not post_rows:
+        return set()
+
+    article_ids: set[int] = set()
+    for cluster_id, cycle_id in post_rows:
+        if cluster_id is not None:
+            cluster = session.execute(
+                select(Cluster).where(Cluster.id == cluster_id)
+            ).scalar_one_or_none()
+            if cluster is not None and cluster.member_article_ids:
+                article_ids.update(int(aid) for aid in cluster.member_article_ids)
+            continue
+
+        counts = session.execute(
+            select(RunLog.counts).where(RunLog.cycle_id == cycle_id)
+        ).scalar_one_or_none()
+        if not isinstance(counts, dict):
+            continue
+        fallback_article_id = counts.get("fallback_article_id")
+        if fallback_article_id is not None:
+            article_ids.add(int(fallback_article_id))
+
+    return article_ids
 
 
 def insert_post(
@@ -259,6 +299,7 @@ def sum_monthly_cost_usd(session: Session) -> float:
 __all__ = [
     "PostWithTexts",
     "count_posted_today",
+    "get_recent_posted_article_ids",
     "get_recent_posts_with_source_texts",
     "get_stale_pending_posts",
     "insert_pending",

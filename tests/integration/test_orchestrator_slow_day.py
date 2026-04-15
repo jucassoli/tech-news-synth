@@ -14,8 +14,8 @@ from tech_news_synth.config import Settings, load_settings
 from tech_news_synth.db.articles import ArticleRow, upsert_batch
 from tech_news_synth.db.hashing import article_hash as hash_url
 from tech_news_synth.db.hashing import canonicalize_url
-from tech_news_synth.db.models import Article, Cluster
-from tech_news_synth.db.run_log import start_cycle
+from tech_news_synth.db.models import Article, Cluster, Post
+from tech_news_synth.db.run_log import finish_cycle, start_cycle
 from tech_news_synth.ingest.sources_config import RssSource, SourcesConfig
 
 FIXTURE_DIR = Path(__file__).parent.parent / "fixtures" / "cluster"
@@ -184,3 +184,84 @@ def test_determinism_end_to_end(db_session, settings: Settings) -> None:
         )
         results.append(key)
     assert results[0] == results[1] == results[2]
+
+
+def test_slow_day_fallback_skips_recently_posted_fallback_article(
+    db_session, settings: Settings
+) -> None:
+    past_cycle_id = "01SLOWFALLBACKPAST000000001"
+    current_cycle_id = "01SLOWFALLBACKCURR00000001"
+
+    start_cycle(db_session, past_cycle_id)
+    article_ids = _seed_slow_day(db_session)
+    newest_id = article_ids[-1]
+    db_session.add(
+        Post(
+            cycle_id=past_cycle_id,
+            cluster_id=None,
+            status="posted",
+            synthesized_text="past fallback",
+            hashtags=[],
+            posted_at=datetime.now(UTC) - timedelta(hours=1),
+        )
+    )
+    db_session.flush()
+    finish_cycle(
+        db_session,
+        past_cycle_id,
+        status="ok",
+        counts={"fallback_used": True, "fallback_article_id": newest_id},
+    )
+    db_session.flush()
+
+    start_cycle(db_session, current_cycle_id)
+    cfg = _sources_config(
+        ["techcrunch", "verge", "ars_technica", "hacker_news", "reddit_technology"]
+    )
+
+    result = run_clustering(db_session, current_cycle_id, settings, cfg)
+
+    assert result.counts_patch["fallback_used"] is True
+    assert result.fallback_article_id is not None
+    assert result.fallback_article_id != newest_id
+
+
+def test_slow_day_fallback_can_be_fully_blocked_by_recent_posts(
+    db_session, settings: Settings
+) -> None:
+    current_cycle_id = "01SLOWBLOCKCURR0000000001"
+
+    article_ids = _seed_slow_day(db_session)
+    posted_at = datetime.now(UTC) - timedelta(hours=1)
+    for idx, article_id in enumerate(article_ids):
+        cycle_id = f"01SLOWBLOCKPAST00000000{idx:02d}"
+        start_cycle(db_session, cycle_id)
+        db_session.add(
+            Post(
+                cycle_id=cycle_id,
+                cluster_id=None,
+                status="posted",
+                synthesized_text=f"past fallback {idx}",
+                hashtags=[],
+                posted_at=posted_at,
+            )
+        )
+        db_session.flush()
+        finish_cycle(
+            db_session,
+            cycle_id,
+            status="ok",
+            counts={"fallback_used": True, "fallback_article_id": article_id},
+        )
+    db_session.flush()
+
+    start_cycle(db_session, current_cycle_id)
+    cfg = _sources_config(
+        ["techcrunch", "verge", "ars_technica", "hacker_news", "reddit_technology"]
+    )
+
+    result = run_clustering(db_session, current_cycle_id, settings, cfg)
+
+    assert result.fallback_article_id is None
+    assert result.counts_patch["fallback_used"] is False
+    assert result.counts_patch["fallback_blocked_by_recent_posts"] is True
