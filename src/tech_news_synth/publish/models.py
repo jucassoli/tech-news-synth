@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CapCheckResult(BaseModel):
@@ -25,6 +25,9 @@ class PublishResult(BaseModel):
     elapsed_ms: int
     error_detail: dict | None
     counts_patch: dict[str, object]
+    tweet_ids: list[str] = Field(default_factory=list)
+    parts_posted: int = 0
+    failed_part: int | None = None
 
 
 __all__ = ["CapCheckResult", "PublishResult"]

@@ -43,8 +43,9 @@ from typing import TYPE_CHECKING, Literal
 
 from tech_news_synth.db.articles import get_articles_by_ids
 from tech_news_synth.db.models import Article, Cluster
-from tech_news_synth.db.posts import insert_post
+from tech_news_synth.db.posts import insert_post, insert_post_tweets
 from tech_news_synth.logging import get_logger
+from tech_news_synth.publish.card_probe import probe_source_card
 from tech_news_synth.synth.article_picker import pick_articles_for_synthesis
 from tech_news_synth.synth.charcount import weighted_len
 from tech_news_synth.synth.client import call_haiku
@@ -57,7 +58,12 @@ from tech_news_synth.synth.prompt import (
     build_retry_prompt,
     build_system_prompt,
     build_user_prompt,
-    format_final_post,
+)
+from tech_news_synth.synth.thread import (
+    choose_thread_parts,
+    compose_reply_post,
+    compose_root_post,
+    generate_thread_replies,
 )
 from tech_news_synth.synth.truncate import word_boundary_truncate
 from tech_news_synth.synth.url_picker import pick_source_url
@@ -197,8 +203,7 @@ def run_synthesis(
                 user_prompt, text, invalid_reason, body_budget
             )
             continue
-        candidate = format_final_post(text, source_url, hashtags)
-        cand_len = weighted_len(candidate)
+        cand_len = weighted_len(text)
         attempt_log.append(
             {"attempt": attempt, "length": cand_len, "text_preview": text[:120]}
         )
@@ -210,7 +215,7 @@ def run_synthesis(
             output_tokens=out_tok,
             text_preview=text[:120],
         )
-        if cand_len <= 280:
+        if cand_len <= body_budget:
             body_text = text
             break
         # Prepare retry prompt for next iteration
@@ -224,28 +229,47 @@ def run_synthesis(
                 "synthesis returned non-publishable assistant-style output "
                 f"after {max_attempts} attempts: {last_invalid_reason}"
             )
-        # Exhausted attempts — truncate last body to fit remaining budget
-        hashtag_block = " ".join(hashtags)
-        # Overhead: " " + URL (t.co 23 chars) + optional (" " + hashtag_block)
-        overhead = 1 + 23
-        if hashtag_block:
-            overhead += 1 + weighted_len(hashtag_block)
-        body_budget_hard = max(0, 280 - overhead)
-        body_text = word_boundary_truncate(last_text, body_budget_hard)
+        # Exhausted attempts — truncate last body to the configured lead budget.
+        body_text = word_boundary_truncate(last_text, body_budget)
         final_method = "truncated"
         log.warning(
             "synth_truncated",
-            final_length_estimate=weighted_len(
-                format_final_post(body_text, source_url, hashtags)
-            ),
+            final_length_estimate=weighted_len(body_text),
         )
 
     assert body_text is not None
-    final_text = format_final_post(body_text, source_url, hashtags)
-    assert weighted_len(final_text) <= 280, "weighted_len invariant violated"
     attempts_count = len(attempt_log)
 
-    # --- Step 5: cost + status ---
+    # --- Step 5: official short-thread composition ---
+    thread_parts_planned = choose_thread_parts(selected)
+    card_probe = probe_source_card(source_url)
+    root_text = compose_root_post(body_text, source_url)
+    assert weighted_len(root_text) <= 280, "root thread part exceeds X budget"
+
+    reply_texts: list[str] = []
+    reply_input_tokens = 0
+    reply_output_tokens = 0
+    if thread_parts_planned > 1:
+        raw_replies, reply_input_tokens, reply_output_tokens = generate_thread_replies(
+            anthropic_client=anthropic_client,
+            settings=settings,
+            selected=selected,
+            lead_body=body_text,
+            parts=thread_parts_planned,
+        )
+        if hashtags:
+            last_reply = compose_reply_post(raw_replies[-1], suffix=" ".join(hashtags))
+        else:
+            last_reply = compose_reply_post(raw_replies[-1])
+        reply_texts = [compose_reply_post(text) for text in raw_replies[:-1]] + [last_reply]
+        for reply in reply_texts:
+            assert weighted_len(reply) <= 280, "reply thread part exceeds X budget"
+
+    thread_texts = [root_text, *reply_texts]
+
+    # --- Step 6: cost + status ---
+    total_input_tokens += reply_input_tokens
+    total_output_tokens += reply_output_tokens
     cost_usd = compute_cost_usd(total_input_tokens, total_output_tokens)
     status: Literal["pending", "dry_run", "replay"]
     if not persist:
@@ -258,7 +282,7 @@ def run_synthesis(
         else None
     )
 
-    # --- Step 6: persist (Phase 8 D-12: skipped when persist=False) ---
+    # --- Step 7: persist (Phase 8 D-12: skipped when persist=False) ---
     post_id: int | None
     if persist:
         post = insert_post(
@@ -267,11 +291,12 @@ def run_synthesis(
             cluster_id=cluster_id,
             status=status,
             theme_centroid=theme_centroid,
-            synthesized_text=final_text,
+            synthesized_text=root_text,
             hashtags=hashtags,
             cost_usd=cost_usd,
             error_detail=error_detail,
         )
+        insert_post_tweets(session, post.id, thread_texts)
         session.flush()
         post_id = post.id
     else:
@@ -286,10 +311,12 @@ def run_synthesis(
         cost_usd=cost_usd,
         post_id=post_id,
         persist=persist,
+        thread_parts_planned=thread_parts_planned,
+        probable_card=card_probe.get("probable_card"),
     )
 
     return SynthesisResult(
-        text=final_text,
+        text=root_text,
         body_text=body_text,
         hashtags=hashtags,
         source_url=source_url,
@@ -306,9 +333,16 @@ def run_synthesis(
             "synth_input_tokens": total_input_tokens,
             "synth_output_tokens": total_output_tokens,
             "synth_cost_usd": cost_usd,
-            "char_budget_used": weighted_len(final_text),  # Phase 8 OPS-01 D-06 field 6
+            "char_budget_used": weighted_len(root_text),  # root lead budget
             "post_id": post_id,
+            "thread_parts_planned": thread_parts_planned,
+            "card_probe_probable": bool(card_probe.get("probable_card")),
+            "card_probe_twitter_card": card_probe.get("twitter_card"),
         },
+        reply_texts=reply_texts,
+        thread_texts=thread_texts,
+        thread_parts_planned=thread_parts_planned,
+        card_probe=card_probe,
     )
 
 

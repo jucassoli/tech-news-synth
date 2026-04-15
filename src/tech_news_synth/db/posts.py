@@ -19,7 +19,7 @@ from typing import Literal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from tech_news_synth.db.models import Article, Cluster, Post, RunLog
+from tech_news_synth.db.models import Article, Cluster, Post, PostTweet, RunLog
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,15 @@ class PostWithTexts:
 
     post_id: int
     source_texts: list[str]
+
+
+@dataclass(frozen=True)
+class ThreadPartRecord:
+    """Persisted thread segment for one publication row."""
+
+    position: int
+    text: str
+    tweet_id: str | None
 
 
 def insert_pending(
@@ -251,6 +260,53 @@ def update_post_to_failed(
     session.flush()
 
 
+def insert_post_tweets(
+    session: Session,
+    post_id: int,
+    texts: Sequence[str],
+) -> list[PostTweet]:
+    """Persist the planned thread parts for a post in position order."""
+    rows = [
+        PostTweet(post_id=post_id, position=idx, text=text)
+        for idx, text in enumerate(texts, start=1)
+    ]
+    session.add_all(rows)
+    session.flush()
+    return rows
+
+
+def update_post_tweet_id(
+    session: Session,
+    post_id: int,
+    position: int,
+    tweet_id: str,
+) -> None:
+    """Record the X tweet id for a specific thread part."""
+    row = session.execute(
+        select(PostTweet)
+        .where(PostTweet.post_id == post_id)
+        .where(PostTweet.position == position)
+    ).scalar_one()
+    row.tweet_id = tweet_id
+    session.flush()
+
+
+def get_post_tweets(
+    session: Session,
+    post_id: int,
+) -> list[ThreadPartRecord]:
+    """Return persisted thread parts ordered by position."""
+    rows = session.execute(
+        select(PostTweet)
+        .where(PostTweet.post_id == post_id)
+        .order_by(PostTweet.position.asc())
+    ).scalars()
+    return [
+        ThreadPartRecord(position=row.position, text=row.text, tweet_id=row.tweet_id)
+        for row in rows
+    ]
+
+
 def get_stale_pending_posts(
     session: Session,
     cutoff_dt: datetime,
@@ -298,16 +354,20 @@ def sum_monthly_cost_usd(session: Session) -> float:
 
 __all__ = [
     "PostWithTexts",
+    "ThreadPartRecord",
     "count_posted_today",
+    "get_post_tweets",
     "get_recent_posted_article_ids",
     "get_recent_posts_with_source_texts",
     "get_stale_pending_posts",
     "insert_pending",
     "insert_post",
+    "insert_post_tweets",
     "read_centroid",
     "sum_monthly_cost_usd",
     "update_failed",
     "update_post_to_failed",
     "update_post_to_posted",
+    "update_post_tweet_id",
     "update_posted",
 ]

@@ -44,6 +44,9 @@ def _synth() -> SynthesisResult:
 def test_422_duplicate_tweet_flagged(mocker):
     session = mocker.MagicMock()
     x_client = mocker.MagicMock()
+    mocker.patch("tech_news_synth.publish.orchestrator.get_post_tweets", return_value=[])
+    mocker.patch("tech_news_synth.publish.orchestrator.insert_post_tweets")
+    mocker.patch("tech_news_synth.publish.orchestrator.update_post_tweet_id")
     detail = {
         "reason": "duplicate_tweet",
         "status_code": 422,
@@ -66,6 +69,8 @@ def test_422_duplicate_tweet_flagged(mocker):
     assert r.error_detail["reason"] == "duplicate_tweet"
     assert r.counts_patch["publish_status"] == "failed"
     assert r.counts_patch.get("publish_error_reason") == "duplicate_tweet"
+    assert r.counts_patch["thread_parts_planned"] == 1
+    assert r.counts_patch["thread_parts_posted"] == 0
     # rate_limited flag MUST NOT be set on non-429 errors
     assert "rate_limited" not in r.counts_patch
 

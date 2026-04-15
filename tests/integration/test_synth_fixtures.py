@@ -51,7 +51,12 @@ def _sources_from_fixture(fixture: dict) -> SourcesConfig:
     for n in sorted(names):
         if n.startswith("reddit"):
             sources.append(
-                RedditJsonSource(name=n, type="reddit_json", url=f"https://reddit.com/r/{n}.json", timeout_sec=15)  # type: ignore[arg-type]
+                RedditJsonSource(
+                    name=n,
+                    type="reddit_json",
+                    url=f"https://reddit.com/r/{n}.json",
+                    timeout_sec=15,
+                )  # type: ignore[arg-type]
             )
         else:
             sources.append(
@@ -65,7 +70,7 @@ def _sources_from_fixture(fixture: dict) -> SourcesConfig:
 def _seed_from_fixture(db_session, fixture: dict, cycle_id: str):
     start_cycle(db_session, cycle_id)
     rows = []
-    for i, a in enumerate(fixture["cluster_articles"]):
+    for a in fixture["cluster_articles"]:
         h = hashlib.sha256(a["url"].encode()).hexdigest()
         rows.append(
             {
@@ -98,6 +103,20 @@ def test_fixture_spot_check_weighted_len(db_session, mocker, fixture_path: Path)
     # Short PT-BR body (under budget) — simulates a well-behaved Haiku response.
     body = "Notícia sintetizada em português sobre o tema principal do ciclo."
     mocker.patch.object(orch, "call_haiku", return_value=(body, 120, 40))
+    mocker.patch.object(
+        orch,
+        "probe_source_card",
+        return_value={"probable_card": True, "twitter_card": "summary_large_image"},
+    )
+    mocker.patch.object(
+        orch,
+        "generate_thread_replies",
+        side_effect=lambda **kwargs: (
+            [f"Reply {i}" for i in range(1, kwargs["parts"])],
+            12,
+            6,
+        ),
+    )
 
     allowlist = load_hashtag_allowlist(FIXTURES_DIR / "hashtags.yaml")
 

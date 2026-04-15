@@ -16,7 +16,7 @@ from tech_news_synth.cluster.models import SelectionResult
 from tech_news_synth.config import Settings
 from tech_news_synth.db.articles import upsert_batch
 from tech_news_synth.db.clusters import insert_cluster
-from tech_news_synth.db.models import Article, Post
+from tech_news_synth.db.models import Article, Post, PostTweet
 from tech_news_synth.db.run_log import start_cycle
 from tech_news_synth.ingest.sources_config import RssSource, SourcesConfig
 from tech_news_synth.synth import orchestrator as orch
@@ -109,6 +109,16 @@ def test_posts_row_written_with_cost_and_tokens(db_session, mocker):
         "call_haiku",
         return_value=("Apple anuncia o chip M5 com foco em IA.", 100, 40),
     )
+    mocker.patch.object(
+        orch,
+        "probe_source_card",
+        return_value={"probable_card": True, "twitter_card": "summary_large_image"},
+    )
+    mocker.patch.object(
+        orch,
+        "generate_thread_replies",
+        return_value=(["Detalhe 1.", "Fechamento."], 12, 6),
+    )
 
     selection = SelectionResult(
         winner_cluster_id=cluster_id,
@@ -143,6 +153,16 @@ def test_posts_row_written_with_cost_and_tokens(db_session, mocker):
     assert len(row.theme_centroid) > 0
     # error_detail None on completed
     assert row.error_detail is None
+    parts = list(
+        db_session.execute(
+            select(PostTweet)
+            .where(PostTweet.post_id == result.post_id)
+            .order_by(PostTweet.position.asc())
+        ).scalars()
+    )
+    assert len(parts) == 3
+    assert parts[0].text == result.text
+    assert parts[-1].text.endswith("#Apple")
 
 
 def test_truncation_persists_error_detail(db_session, mocker):
@@ -152,6 +172,16 @@ def test_truncation_persists_error_detail(db_session, mocker):
 
     over = "Z" * 260
     mocker.patch.object(orch, "call_haiku", return_value=(over, 150, 120))
+    mocker.patch.object(
+        orch,
+        "probe_source_card",
+        return_value={"probable_card": True, "twitter_card": "summary_large_image"},
+    )
+    mocker.patch.object(
+        orch,
+        "generate_thread_replies",
+        return_value=(["Detalhe 1.", "Fechamento."], 12, 6),
+    )
 
     selection = SelectionResult(
         winner_cluster_id=cluster_id,
@@ -191,6 +221,16 @@ def test_invalid_assistant_style_output_retries_then_persists_valid(db_session, 
             ),
             ("Apple apresenta o chip M5 com foco em IA.", 60, 18),
         ],
+    )
+    mocker.patch.object(
+        orch,
+        "probe_source_card",
+        return_value={"probable_card": True, "twitter_card": "summary_large_image"},
+    )
+    mocker.patch.object(
+        orch,
+        "generate_thread_replies",
+        return_value=(["Detalhe 1.", "Fechamento."], 12, 6),
     )
 
     selection = SelectionResult(

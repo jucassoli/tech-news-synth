@@ -64,6 +64,16 @@ def test_dry_run_writes_status_dry_run(db_session, mocker):
     )
 
     mocker.patch.object(orch, "call_haiku", return_value=("Curto texto.", 80, 20))
+    mocker.patch.object(
+        orch,
+        "probe_source_card",
+        return_value={"probable_card": True, "twitter_card": "summary_large_image"},
+    )
+    mocker.patch.object(
+        orch,
+        "generate_thread_replies",
+        return_value=(["Fechamento."], 12, 6),
+    )
 
     selection = SelectionResult(
         winner_cluster_id=cluster.id,

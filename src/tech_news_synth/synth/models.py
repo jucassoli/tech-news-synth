@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SynthesisResult(BaseModel):
@@ -12,8 +12,8 @@ class SynthesisResult(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    text: str  # FINAL "body url #tag1 #tag2" string
-    body_text: str  # body only
+    text: str  # root post text
+    body_text: str  # root body only
     hashtags: list[str]
     source_url: str
     attempts: int  # 1..synthesis_max_retries+1
@@ -24,6 +24,10 @@ class SynthesisResult(BaseModel):
     post_id: int | None  # populated after 06-02 persists; None when persist=False (Phase 8)
     status: Literal["pending", "dry_run", "replay"]
     counts_patch: dict[str, object]  # for run_log.counts merge
+    reply_texts: list[str] = Field(default_factory=list)
+    thread_texts: list[str] = Field(default_factory=list)
+    thread_parts_planned: int = 1
+    card_probe: dict[str, object] = Field(default_factory=dict)
 
 
 __all__ = ["SynthesisResult"]

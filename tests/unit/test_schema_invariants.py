@@ -10,7 +10,7 @@ import sqlalchemy as sa
 import tech_news_synth.db.models  # noqa: F401 — register models on Base.metadata
 from tech_news_synth.db.base import Base
 
-EXPECTED_TABLES = {"articles", "clusters", "posts", "run_log", "source_state"}
+EXPECTED_TABLES = {"articles", "clusters", "posts", "post_tweets", "run_log", "source_state"}
 
 
 def test_tables_present() -> None:
@@ -63,9 +63,21 @@ def test_cycle_id_fk_relationships() -> None:
         assert col.nullable is False
 
 
+def test_post_tweets_fk_relationship_and_unique_position() -> None:
+    posts_id = Base.metadata.tables["posts"].c.id
+    table = Base.metadata.tables["post_tweets"]
+    fks = list(table.c.post_id.foreign_keys)
+    assert len(fks) == 1
+    assert fks[0].column is posts_id
+    assert table.c.text.nullable is False
+    assert table.c.position.nullable is False
+    uniques = [idx for idx in table.indexes if idx.unique]
+    assert any(tuple(col.name for col in idx.columns) == ("post_id", "position") for idx in uniques)
+
+
 def test_article_and_cluster_and_post_ids_are_bigint() -> None:
     """D-04 — bigserial PKs."""
-    for name in ("articles", "clusters", "posts"):
+    for name in ("articles", "clusters", "posts", "post_tweets"):
         col = Base.metadata.tables[name].c.id
         assert isinstance(col.type, sa.BigInteger), (
             f"{name}.id is not BigInteger (got {type(col.type).__name__})"

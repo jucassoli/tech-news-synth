@@ -1,4 +1,4 @@
-"""ORM models for Phase 2 storage: Article, Cluster, Post, RunLog.
+"""ORM models for Phase 2 storage: Article, Cluster, Post, PostTweet, RunLog.
 
 Follows SA 2.0 typed Declarative (:class:`Mapped` + :func:`mapped_column`).
 Every datetime column is ``DateTime(timezone=True)`` → Postgres ``TIMESTAMPTZ``
@@ -6,7 +6,8 @@ Every datetime column is ``DateTime(timezone=True)`` → Postgres ``TIMESTAMPTZ`
 
 Key decisions honored:
 
-* **D-04** — ``bigserial`` PKs on ``articles``, ``clusters``, ``posts``.
+* **D-04** — ``bigserial`` PKs on ``articles``, ``clusters``, ``posts``,
+  ``post_tweets``.
 * **D-05** — ``run_log.cycle_id`` is the natural TEXT PK (26-char ULID); child
   tables ``clusters.cycle_id`` and ``posts.cycle_id`` are TEXT FKs with
   ``ON DELETE CASCADE``.
@@ -164,6 +165,37 @@ class Post(Base):
     )
 
 
+class PostTweet(Base):
+    """One persisted item per planned/published thread part.
+
+    Parent ``posts`` keeps the publication-level lifecycle/cost/status. This
+    child table stores the ordered text parts and, once posted, the individual
+    X tweet ids for each thread segment.
+    """
+
+    __tablename__ = "post_tweets"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # D-04
+    post_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("posts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    tweet_id: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint("position >= 1", name="ck_post_tweets_position_positive"),
+        Index("ix_post_tweets_post_id", "post_id"),
+        Index("ix_post_tweets_tweet_id", "tweet_id"),
+        Index("uq_post_tweets_post_id_position", "post_id", "position", unique=True),
+    )
+
+
 class SourceState(Base):
     """Per-source ingest health + conditional-GET cache (Phase 4 D-04).
 
@@ -184,4 +216,4 @@ class SourceState(Base):
     last_status: Mapped[str | None] = mapped_column(Text)
 
 
-__all__ = ["Article", "Cluster", "Post", "RunLog", "SourceState"]
+__all__ = ["Article", "Cluster", "Post", "PostTweet", "RunLog", "SourceState"]

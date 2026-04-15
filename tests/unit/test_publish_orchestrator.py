@@ -49,9 +49,16 @@ def _synth(
     )
 
 
+def _patch_thread_repo(mocker):
+    mocker.patch("tech_news_synth.publish.orchestrator.get_post_tweets", return_value=[])
+    mocker.patch("tech_news_synth.publish.orchestrator.insert_post_tweets")
+    return mocker.patch("tech_news_synth.publish.orchestrator.update_post_tweet_id")
+
+
 def test_posted_happy_path(mocker):
     session = mocker.MagicMock(name="session")
     x_client = mocker.MagicMock(name="x_client")
+    update_thread_tweet = _patch_thread_repo(mocker)
     mocker.patch(
         "tech_news_synth.publish.orchestrator.post_tweet",
         return_value=XCallOutcome("posted", "999", 120, None),
@@ -72,9 +79,12 @@ def test_posted_happy_path(mocker):
         "publish_status": "posted",
         "tweet_id": "999",
         "publish_elapsed_ms": 120,
+        "thread_parts_planned": 1,
+        "thread_parts_posted": 1,
     }
 
     update_posted.assert_called_once()
+    update_thread_tweet.assert_called_once()
     args = update_posted.call_args.args
     assert args[0] is session
     assert args[1] == 42
@@ -89,6 +99,7 @@ def test_posted_does_not_touch_cost_usd(mocker):
     """
     session = mocker.MagicMock(name="session")
     x_client = mocker.MagicMock(name="x_client")
+    _patch_thread_repo(mocker)
     mocker.patch(
         "tech_news_synth.publish.orchestrator.post_tweet",
         return_value=XCallOutcome("posted", "1", 5, None),
@@ -106,6 +117,7 @@ def test_binds_phase_publish_log_context(mocker):
     """PUBLISH: every orchestrator log line carries phase='publish'."""
     session = mocker.MagicMock(name="session")
     x_client = mocker.MagicMock(name="x_client")
+    _patch_thread_repo(mocker)
     mocker.patch(
         "tech_news_synth.publish.orchestrator.post_tweet",
         return_value=XCallOutcome("posted", "999", 10, None),
@@ -124,6 +136,7 @@ def test_error_detail_is_json_serializable(mocker):
     """The string passed to update_post_to_failed must round-trip JSON."""
     session = mocker.MagicMock(name="session")
     x_client = mocker.MagicMock(name="x_client")
+    _patch_thread_repo(mocker)
     complex_detail = {
         "reason": "publish_error",
         "status_code": 500,
@@ -169,6 +182,7 @@ def test_generic_error_branch_counts_patch(mocker):
     """publish_error → counts_patch contains publish_error_reason, not rate_limited."""
     session = mocker.MagicMock(name="session")
     x_client = mocker.MagicMock(name="x_client")
+    _patch_thread_repo(mocker)
     mocker.patch(
         "tech_news_synth.publish.orchestrator.post_tweet",
         return_value=XCallOutcome(
@@ -186,4 +200,86 @@ def test_generic_error_branch_counts_patch(mocker):
     assert r.status == "failed"
     assert r.counts_patch["publish_status"] == "failed"
     assert r.counts_patch["publish_error_reason"] == "duplicate_tweet"
+    assert r.counts_patch["thread_parts_planned"] == 1
+    assert r.counts_patch["thread_parts_posted"] == 0
     assert "rate_limited" not in r.counts_patch
+
+
+def test_multi_part_thread_posts_sequentially(mocker):
+    session = mocker.MagicMock(name="session")
+    x_client = mocker.MagicMock(name="x_client")
+    mocker.patch("tech_news_synth.publish.orchestrator.get_post_tweets", return_value=[])
+    insert_parts = mocker.patch("tech_news_synth.publish.orchestrator.insert_post_tweets")
+    update_thread = mocker.patch("tech_news_synth.publish.orchestrator.update_post_tweet_id")
+    update_posted = mocker.patch("tech_news_synth.publish.orchestrator.update_post_to_posted")
+    mocker.patch("tech_news_synth.publish.orchestrator.update_post_to_failed")
+    post_call = mocker.patch(
+        "tech_news_synth.publish.orchestrator.post_tweet",
+        side_effect=[
+            XCallOutcome("posted", "r1", 20, None),
+            XCallOutcome("posted", "r2", 30, None),
+            XCallOutcome("posted", "r3", 40, None),
+        ],
+    )
+
+    synth = _synth()
+    synth = synth.model_copy(
+        update={
+            "thread_texts": ["root", "reply 1", "reply 2"],
+            "reply_texts": ["reply 1", "reply 2"],
+        }
+    )
+
+    result = run_publish(session, "cyc-thread", synth, _settings(), x_client)
+
+    assert result.status == "posted"
+    assert result.tweet_id == "r1"
+    assert result.tweet_ids == ["r1", "r2", "r3"]
+    assert result.parts_posted == 3
+    assert result.elapsed_ms == 90
+    assert result.counts_patch["thread_parts_planned"] == 3
+    assert result.counts_patch["thread_parts_posted"] == 3
+    insert_parts.assert_called_once_with(session, 42, ["root", "reply 1", "reply 2"])
+    assert [
+        call.kwargs["in_reply_to_tweet_id"] for call in post_call.call_args_list
+    ] == [None, "r1", "r2"]
+    assert [call.args[2] for call in update_thread.call_args_list] == [1, 2, 3]
+    update_posted.assert_called_once()
+
+
+def test_thread_failure_midway_preserves_posted_prefix(mocker):
+    session = mocker.MagicMock(name="session")
+    x_client = mocker.MagicMock(name="x_client")
+    mocker.patch("tech_news_synth.publish.orchestrator.get_post_tweets", return_value=[])
+    mocker.patch("tech_news_synth.publish.orchestrator.insert_post_tweets")
+    update_thread = mocker.patch("tech_news_synth.publish.orchestrator.update_post_tweet_id")
+    update_failed = mocker.patch("tech_news_synth.publish.orchestrator.update_post_to_failed")
+    mocker.patch("tech_news_synth.publish.orchestrator.update_post_to_posted")
+    mocker.patch(
+        "tech_news_synth.publish.orchestrator.post_tweet",
+        side_effect=[
+            XCallOutcome("posted", "r1", 20, None),
+            XCallOutcome(
+                "publish_error",
+                None,
+                30,
+                {"reason": "publish_error", "status_code": 500},
+            ),
+        ],
+    )
+
+    synth = _synth()
+    synth = synth.model_copy(update={"thread_texts": ["root", "reply 1"]})
+
+    result = run_publish(session, "cyc-thread", synth, _settings(), x_client)
+
+    assert result.status == "failed"
+    assert result.tweet_id == "r1"
+    assert result.tweet_ids == ["r1"]
+    assert result.parts_posted == 1
+    assert result.failed_part == 2
+    assert result.counts_patch["thread_parts_planned"] == 2
+    assert result.counts_patch["thread_parts_posted"] == 1
+    assert result.counts_patch["thread_failed_part"] == 2
+    update_thread.assert_called_once()
+    update_failed.assert_called_once()

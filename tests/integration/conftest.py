@@ -145,12 +145,17 @@ def db_session(connection: Connection) -> Iterator[Session]:
 
 @pytest.fixture
 def clean_db(engine: Engine) -> Iterator[None]:
-    """Hard reset — TRUNCATE all four tables with RESTART IDENTITY CASCADE.
+    """Hard reset — TRUNCATE app tables with RESTART IDENTITY CASCADE.
 
     Use this only when a test explicitly needs a fresh slate outside the
     transactional-rollback pattern (most tests should depend on ``db_session``
     instead).
     """
     with engine.begin() as conn:
-        conn.execute(text("TRUNCATE articles, clusters, posts, run_log RESTART IDENTITY CASCADE"))
+        conn.execute(
+            text(
+                "TRUNCATE articles, clusters, posts, post_tweets, run_log, source_state "
+                "RESTART IDENTITY CASCADE"
+            )
+        )
     yield

@@ -12,18 +12,24 @@ from __future__ import annotations
 def test_phase7_helpers_importable():
     from tech_news_synth.db.posts import (
         count_posted_today,
+        get_post_tweets,
         get_stale_pending_posts,
+        insert_post_tweets,
         sum_monthly_cost_usd,
         update_post_to_failed,
         update_post_to_posted,
+        update_post_tweet_id,
     )
 
-    # All five helpers must be callable attributes.
+    # All helpers must be callable attributes.
     for fn in (
         update_post_to_posted,
         update_post_to_failed,
         get_stale_pending_posts,
         count_posted_today,
         sum_monthly_cost_usd,
+        insert_post_tweets,
+        update_post_tweet_id,
+        get_post_tweets,
     ):
         assert callable(fn)

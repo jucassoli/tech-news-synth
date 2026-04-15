@@ -11,10 +11,10 @@ from decimal import Decimal
 import pytest
 import responses
 from pydantic import SecretStr
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from tech_news_synth.config import Settings
-from tech_news_synth.db.models import Post, RunLog
+from tech_news_synth.db.models import Post, PostTweet, RunLog
 from tech_news_synth.db.posts import insert_post
 from tech_news_synth.publish import build_x_client, cleanup_stale_pending, run_publish
 from tech_news_synth.synth.models import SynthesisResult
@@ -93,6 +93,15 @@ def test_pending_to_posted_full_roundtrip(db_session):
     assert post.tweet_id == "X1"
     assert post.posted_at is not None
     assert post.error_detail is None
+    rows = list(
+        db_session.execute(
+            select(PostTweet)
+            .where(PostTweet.post_id == pid)
+            .order_by(PostTweet.position.asc())
+        ).scalars()
+    )
+    assert len(rows) == 1
+    assert rows[0].tweet_id == "X1"
     # cost_usd preserved (not overwritten by publish transition)
     assert post.cost_usd == Decimal("0.000038")
 

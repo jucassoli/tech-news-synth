@@ -24,7 +24,13 @@ from typing import TYPE_CHECKING
 
 from structlog.contextvars import bind_contextvars
 
-from tech_news_synth.db.posts import update_post_to_failed, update_post_to_posted
+from tech_news_synth.db.posts import (
+    get_post_tweets,
+    insert_post_tweets,
+    update_post_to_failed,
+    update_post_to_posted,
+    update_post_tweet_id,
+)
 from tech_news_synth.logging import get_logger
 from tech_news_synth.publish.client import post_tweet
 from tech_news_synth.publish.models import PublishResult
@@ -78,39 +84,69 @@ def run_publish(
     assert x_client is not None, "x_client required when synthesis_result.status != 'dry_run'"
     assert synthesis_result.post_id is not None, "synthesis_result must have post_id for publish"
 
-    outcome = post_tweet(x_client, synthesis_result.text)
+    thread_texts = synthesis_result.thread_texts or [synthesis_result.text]
+    if not get_post_tweets(session, synthesis_result.post_id):
+        insert_post_tweets(session, synthesis_result.post_id, thread_texts)
+    posted_ids: list[str] = []
+    total_elapsed_ms = 0
+    reply_to_id: str | None = None
+    failed_part: int | None = None
+
+    for idx, text in enumerate(thread_texts, start=1):
+        outcome = post_tweet(x_client, text, in_reply_to_tweet_id=reply_to_id)
+        total_elapsed_ms += outcome.elapsed_ms
+        if outcome.status == "posted":
+            assert outcome.tweet_id is not None, "XCallOutcome('posted') must carry tweet_id"
+            update_post_tweet_id(
+                session,
+                synthesis_result.post_id,
+                idx,
+                outcome.tweet_id,
+            )
+            posted_ids.append(outcome.tweet_id)
+            reply_to_id = outcome.tweet_id
+            continue
+
+        failed_part = idx
+        break
 
     # --- Success branch ---
-    if outcome.status == "posted":
+    if failed_part is None:
         posted_at = datetime.now(UTC)
-        assert outcome.tweet_id is not None, "XCallOutcome('posted') must carry tweet_id"
+        root_tweet_id = posted_ids[0]
         update_post_to_posted(
             session,
             synthesis_result.post_id,
-            outcome.tweet_id,
+            root_tweet_id,
             posted_at,
         )
         log.info(
             "publish_posted",
             post_id=synthesis_result.post_id,
-            tweet_id=outcome.tweet_id,
-            elapsed_ms=outcome.elapsed_ms,
+            tweet_id=root_tweet_id,
+            elapsed_ms=total_elapsed_ms,
+            thread_parts_posted=len(posted_ids),
         )
         return PublishResult(
             post_id=synthesis_result.post_id,
             status="posted",
-            tweet_id=outcome.tweet_id,
-            attempts=1,
-            elapsed_ms=outcome.elapsed_ms,
+            tweet_id=root_tweet_id,
+            attempts=len(thread_texts),
+            elapsed_ms=total_elapsed_ms,
             error_detail=None,
             counts_patch={
                 "publish_status": "posted",
-                "tweet_id": outcome.tweet_id,
-                "publish_elapsed_ms": outcome.elapsed_ms,
+                "tweet_id": root_tweet_id,
+                "publish_elapsed_ms": total_elapsed_ms,
+                "thread_parts_planned": len(thread_texts),
+                "thread_parts_posted": len(posted_ids),
             },
+            tweet_ids=posted_ids,
+            parts_posted=len(posted_ids),
         )
 
     # --- Failure branch (rate_limited or publish_error) ---
+    outcome = outcome  # last failed outcome from the loop above
     error_detail = outcome.error_detail or {"reason": "publish_error", "message": "unknown"}
     error_json = json.dumps(error_detail, ensure_ascii=False, default=str)
     update_post_to_failed(session, synthesis_result.post_id, error_json)
@@ -132,9 +168,12 @@ def run_publish(
         )
         counts_patch: dict[str, object] = {
             "publish_status": "failed",
-            "tweet_id": None,
+            "tweet_id": posted_ids[0] if posted_ids else None,
             "rate_limited": True,
-            "publish_elapsed_ms": outcome.elapsed_ms,
+            "publish_elapsed_ms": total_elapsed_ms,
+            "thread_parts_planned": len(thread_texts),
+            "thread_parts_posted": len(posted_ids),
+            "thread_failed_part": failed_part,
         }
     else:
         log.error(
@@ -143,22 +182,29 @@ def run_publish(
             reason=error_detail.get("reason"),
             status_code=error_detail.get("status_code"),
             tweepy_error_type=error_detail.get("tweepy_error_type"),
+            failed_part=failed_part,
         )
         counts_patch = {
             "publish_status": "failed",
-            "tweet_id": None,
+            "tweet_id": posted_ids[0] if posted_ids else None,
             "publish_error_reason": error_detail.get("reason"),
-            "publish_elapsed_ms": outcome.elapsed_ms,
+            "publish_elapsed_ms": total_elapsed_ms,
+            "thread_parts_planned": len(thread_texts),
+            "thread_parts_posted": len(posted_ids),
+            "thread_failed_part": failed_part,
         }
 
     return PublishResult(
         post_id=synthesis_result.post_id,
         status="failed",
-        tweet_id=None,
-        attempts=1,
-        elapsed_ms=outcome.elapsed_ms,
+        tweet_id=posted_ids[0] if posted_ids else None,
+        attempts=len(thread_texts),
+        elapsed_ms=total_elapsed_ms,
         error_detail=error_detail,
         counts_patch=counts_patch,
+        tweet_ids=posted_ids,
+        parts_posted=len(posted_ids),
+        failed_part=failed_part,
     )
 
 

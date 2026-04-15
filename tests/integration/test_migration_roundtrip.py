@@ -23,7 +23,7 @@ from sqlalchemy.engine import Engine
 
 from tests.integration.conftest import _test_database_url
 
-TABLES = {"articles", "clusters", "posts", "run_log"}
+TABLES = {"articles", "clusters", "posts", "post_tweets", "run_log", "source_state"}
 ALEMBIC_INI = Path(__file__).resolve().parents[2] / "alembic.ini"
 
 
@@ -80,15 +80,15 @@ def test_upgrade_downgrade_upgrade_roundtrip(alembic_cfg, test_dsn: str):
     try:
         _drop_public_schema(engine)
 
-        # Upgrade → four tables + alembic_version exist.
+        # Upgrade → app tables + alembic_version exist.
         command.upgrade(alembic_cfg, "head")
         insp = inspect(engine)
         present = set(insp.get_table_names())
         assert TABLES.issubset(present), f"missing after upgrade: {TABLES - present}"
         assert "alembic_version" in present
 
-        # Downgrade to base → our four tables gone; alembic_version may remain.
-        # (Phase 4 added a second revision, so -1 only drops source_state;
+        # Downgrade to base → app tables gone; alembic_version may remain.
+        # (Later phases added more revisions, so -1 only drops the last one;
         # we verify full reversibility by going all the way to base.)
         command.downgrade(alembic_cfg, "base")
         insp = inspect(engine)

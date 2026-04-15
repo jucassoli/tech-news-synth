@@ -55,14 +55,22 @@ def build_x_client(settings: Settings) -> tweepy.Client:
     return client
 
 
-def post_tweet(client: tweepy.Client, text: str) -> XCallOutcome:
+def post_tweet(
+    client: tweepy.Client,
+    text: str,
+    *,
+    in_reply_to_tweet_id: str | None = None,
+) -> XCallOutcome:
     """Single ``create_tweet`` call with exception → error_detail mapping.
 
     Never raises — returns a structured outcome for the orchestrator.
     """
     start = time.monotonic()
     try:
-        r = client.create_tweet(text=text)
+        kwargs: dict[str, object] = {"text": text}
+        if in_reply_to_tweet_id is not None:
+            kwargs["in_reply_to_tweet_id"] = in_reply_to_tweet_id
+        r = client.create_tweet(**kwargs)
         elapsed_ms = int((time.monotonic() - start) * 1000)
         tweet_id = r.json()["data"]["id"]
         return XCallOutcome("posted", str(tweet_id), elapsed_ms, None)

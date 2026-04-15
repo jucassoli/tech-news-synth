@@ -19,11 +19,14 @@ from sqlalchemy import update
 from tech_news_synth.db.models import Post, RunLog
 from tech_news_synth.db.posts import (
     count_posted_today,
+    get_post_tweets,
     get_stale_pending_posts,
     insert_post,
+    insert_post_tweets,
     sum_monthly_cost_usd,
     update_post_to_failed,
     update_post_to_posted,
+    update_post_tweet_id,
     update_posted,
 )
 
@@ -119,6 +122,33 @@ def test_update_post_to_failed_preserves_cost(db_session) -> None:
     assert post.status == "failed"
     assert post.error_detail == '{"reason": "publish_error"}'
     assert post.cost_usd == Decimal("0.00005")
+
+
+def test_post_tweets_roundtrip(db_session) -> None:
+    cid = "cyc-thread-roundtrip"
+    _seed_run_log(db_session, cid)
+
+    post = insert_post(
+        session=db_session,
+        cycle_id=cid,
+        cluster_id=None,
+        status="pending",
+        theme_centroid=None,
+        synthesized_text="root",
+        hashtags=[],
+        cost_usd=0.00005,
+    )
+
+    insert_post_tweets(db_session, post.id, ["root", "reply 1", "reply 2"])
+    update_post_tweet_id(db_session, post.id, 1, "r1")
+    update_post_tweet_id(db_session, post.id, 2, "r2")
+
+    rows = get_post_tweets(db_session, post.id)
+    assert [(row.position, row.text, row.tweet_id) for row in rows] == [
+        (1, "root", "r1"),
+        (2, "reply 1", "r2"),
+        (3, "reply 2", None),
+    ]
 
 
 # ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@ lives in ``tests/integration/test_synth_*``.
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -22,7 +22,13 @@ from tech_news_synth.synth.hashtags import HashtagAllowlist
 # Helpers
 # ---------------------------------------------------------------------------
 def _make_article(
-    *, id: int, source: str, title: str, url: str, summary: str = "sum", ts: str = "2026-04-14T09:00:00+00:00"
+    *,
+    id: int,
+    source: str,
+    title: str,
+    url: str,
+    summary: str = "sum",
+    ts: str = "2026-04-14T09:00:00+00:00",
 ):
     return SimpleNamespace(
         id=id,
@@ -73,12 +79,31 @@ def _mock_session_with_cluster(cluster_terms: dict):
     return session
 
 
+def _patch_thread_dependencies(mocker, orch):
+    mocker.patch.object(
+        orch,
+        "probe_source_card",
+        return_value={"probable_card": True, "twitter_card": "summary_large_image"},
+    )
+    mocker.patch.object(
+        orch,
+        "generate_thread_replies",
+        side_effect=lambda **kwargs: (
+            [f"Reply {i}" for i in range(1, kwargs["parts"])],
+            12,
+            6,
+        ),
+    )
+    mocker.patch.object(orch, "insert_post_tweets")
+
+
 # ---------------------------------------------------------------------------
 # Test cases
 # ---------------------------------------------------------------------------
 def test_run_synthesis_completed_on_first_attempt(mocker):
     """Winner path, LLM returns under-budget immediately → attempts=1."""
     from tech_news_synth.synth import orchestrator as orch
+    _patch_thread_dependencies(mocker, orch)
 
     articles = [
         _make_article(id=1, source="techcrunch", title="Apple M5", url="https://tc.com/a"),
@@ -119,7 +144,9 @@ def test_run_synthesis_completed_on_first_attempt(mocker):
     assert result.cost_usd > 0
     assert result.hashtags == ["#Apple"]
     assert "https://" in result.text
-    assert "#Apple" in result.text
+    assert "Siga a thread" in result.text
+    assert result.reply_texts[-1].endswith("#Apple")
+    assert len(result.thread_texts) == 3
     assert result.counts_patch["synth_attempts"] == 1
     assert result.counts_patch["synth_truncated"] is False
     assert result.counts_patch["post_id"] == 999
@@ -131,6 +158,7 @@ def test_run_synthesis_completed_on_first_attempt(mocker):
 def test_run_synthesis_completed_on_second_attempt(mocker):
     """Over budget attempt 1, under budget attempt 2."""
     from tech_news_synth.synth import orchestrator as orch
+    _patch_thread_dependencies(mocker, orch)
 
     articles = [_make_article(id=1, source="techcrunch", title="T", url="https://tc.com/a")]
     mocker.patch.object(orch, "get_articles_by_ids", return_value=articles)
@@ -161,13 +189,14 @@ def test_run_synthesis_completed_on_second_attempt(mocker):
     )
     assert result.attempts == 2
     assert result.final_method == "completed"
-    assert result.input_tokens == 160
-    assert result.output_tokens == 100
+    assert result.input_tokens == 172
+    assert result.output_tokens == 106
 
 
 def test_run_synthesis_truncated_after_all_attempts(mocker):
     """All 3 attempts over budget → truncation path; error_detail populated."""
     from tech_news_synth.synth import orchestrator as orch
+    _patch_thread_dependencies(mocker, orch)
 
     articles = [_make_article(id=1, source="techcrunch", title="T", url="https://tc.com/a")]
     mocker.patch.object(orch, "get_articles_by_ids", return_value=articles)
@@ -216,6 +245,7 @@ def test_run_synthesis_truncated_after_all_attempts(mocker):
 def test_run_synthesis_fallback_path(mocker):
     """Fallback branch: single article, no cluster, default hashtag."""
     from tech_news_synth.synth import orchestrator as orch
+    _patch_thread_dependencies(mocker, orch)
 
     article = _make_article(id=99, source="verge", title="Fallback news", url="https://verge.com/f")
     mocker.patch.object(orch, "get_articles_by_ids", return_value=[article])
@@ -242,11 +272,13 @@ def test_run_synthesis_fallback_path(mocker):
     assert result.hashtags == ["#tech"]
     assert result.source_url == "https://verge.com/f"
     assert result.post_id == 500
+    assert len(result.thread_texts) == 2
 
 
 def test_run_synthesis_dry_run_still_calls_anthropic(mocker):
     """DRY_RUN=1 → status='dry_run' but cost_usd > 0 (D-12)."""
     from tech_news_synth.synth import orchestrator as orch
+    _patch_thread_dependencies(mocker, orch)
 
     articles = [_make_article(id=1, source="techcrunch", title="T", url="https://tc.com/a")]
     mocker.patch.object(orch, "get_articles_by_ids", return_value=articles)
@@ -293,6 +325,7 @@ def test_run_synthesis_empty_selection_raises(mocker):
 def test_run_synthesis_anthropic_error_propagates(mocker):
     """anthropic errors must propagate, no posts row written."""
     from tech_news_synth.synth import orchestrator as orch
+    _patch_thread_dependencies(mocker, orch)
 
     articles = [_make_article(id=1, source="techcrunch", title="T", url="https://tc.com/a")]
     mocker.patch.object(orch, "get_articles_by_ids", return_value=articles)
@@ -324,6 +357,7 @@ def test_run_synthesis_persist_false_skips_insert(mocker):
     status='replay', and counts_patch['post_id']=None. Text/cost still produced.
     """
     from tech_news_synth.synth import orchestrator as orch
+    _patch_thread_dependencies(mocker, orch)
 
     articles = [_make_article(id=1, source="techcrunch", title="Apple M5", url="https://tc.com/a")]
     mocker.patch.object(orch, "get_articles_by_ids", return_value=articles)
@@ -358,6 +392,7 @@ def test_run_synthesis_persist_false_skips_insert(mocker):
 def test_run_synthesis_persist_must_be_keyword_only(mocker):
     """Defense-in-depth: positional persist passes TypeError (T-08-02 mitigation)."""
     from tech_news_synth.synth import orchestrator as orch
+    _patch_thread_dependencies(mocker, orch)
 
     articles = [_make_article(id=1, source="techcrunch", title="T", url="https://tc.com/a")]
     mocker.patch.object(orch, "get_articles_by_ids", return_value=articles)
@@ -379,6 +414,7 @@ def test_run_synthesis_persist_must_be_keyword_only(mocker):
 def test_run_synthesis_cluster_terms_drive_hashtags(mocker):
     """Ensure cluster centroid_terms flow to select_hashtags."""
     from tech_news_synth.synth import orchestrator as orch
+    _patch_thread_dependencies(mocker, orch)
 
     articles = [_make_article(id=1, source="techcrunch", title="Apple", url="https://tc.com/a")]
     mocker.patch.object(orch, "get_articles_by_ids", return_value=articles)

@@ -55,6 +55,9 @@ def _rl_detail() -> dict:
 def test_429_maps_to_failed(mocker):
     session = mocker.MagicMock()
     x_client = mocker.MagicMock()
+    mocker.patch("tech_news_synth.publish.orchestrator.get_post_tweets", return_value=[])
+    mocker.patch("tech_news_synth.publish.orchestrator.insert_post_tweets")
+    mocker.patch("tech_news_synth.publish.orchestrator.update_post_tweet_id")
     mocker.patch(
         "tech_news_synth.publish.orchestrator.post_tweet",
         return_value=XCallOutcome("rate_limited", None, 50, _rl_detail()),
@@ -74,6 +77,8 @@ def test_429_maps_to_failed(mocker):
     assert r.counts_patch["publish_status"] == "failed"
     assert r.counts_patch["rate_limited"] is True
     assert r.counts_patch["tweet_id"] is None
+    assert r.counts_patch["thread_parts_planned"] == 1
+    assert r.counts_patch["thread_parts_posted"] == 0
 
     update_failed.assert_called_once()
     json_arg = update_failed.call_args.args[2]
@@ -88,6 +93,9 @@ def test_429_maps_to_failed(mocker):
 def test_429_warn_log_emitted(mocker):
     session = mocker.MagicMock()
     x_client = mocker.MagicMock()
+    mocker.patch("tech_news_synth.publish.orchestrator.get_post_tweets", return_value=[])
+    mocker.patch("tech_news_synth.publish.orchestrator.insert_post_tweets")
+    mocker.patch("tech_news_synth.publish.orchestrator.update_post_tweet_id")
     mocker.patch(
         "tech_news_synth.publish.orchestrator.post_tweet",
         return_value=XCallOutcome("rate_limited", None, 50, _rl_detail()),
