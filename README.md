@@ -95,7 +95,7 @@ flowchart TD
 | --- | --- | --- |
 | Agendamento automático | Executa ciclos em intervalo fixo configurável por `INTERVAL_HOURS` | Implementado |
 | Primeiro ciclo ao subir | O scheduler dispara imediatamente no boot | Implementado |
-| Coleta multi-fonte | RSS, Hacker News Firebase e Reddit JSON | Implementado |
+| Coleta multi-fonte | RSS e Reddit JSON | Implementado |
 | Retry HTTP | Retries em `429`, `5xx` e erros de transporte | Implementado |
 | Conditional GET em RSS | Usa `ETag` e `Last-Modified` para economizar chamadas | Implementado |
 | Normalização e deduplicação | Canonicaliza URL, limpa HTML e deduplica por hash | Implementado |
@@ -174,7 +174,8 @@ O “controle” do sistema é feito por:
 | `techcrunch` | `rss` | `https://techcrunch.com/feed/` |
 | `verge` | `rss` | `https://www.theverge.com/rss/index.xml` |
 | `ars_technica` | `rss` | `https://feeds.arstechnica.com/arstechnica/index` |
-| `hacker_news` | `hn_firebase` | `https://hacker-news.firebaseio.com/v0` |
+| `cointelegraph` | `rss` | `https://cointelegraph.com/rss` |
+| `mit_technology_review` | `rss` | `https://www.technologyreview.com/feed/` |
 | `reddit_technology` | `reddit_json` | `https://www.reddit.com/r/technology/.json` |
 
 ## Funções acionáveis
@@ -436,4 +437,3 @@ src/tech_news_synth/
 
 - Runbook de deploy: [`docs/DEPLOY.md`](/Users/jucassoli/development/git-repo/tech-news-synth/docs/DEPLOY.md)
 - Runbook de `pending` órfão: [`docs/runbook-orphaned-pending.md`](/Users/jucassoli/development/git-repo/tech-news-synth/docs/runbook-orphaned-pending.md)
-
