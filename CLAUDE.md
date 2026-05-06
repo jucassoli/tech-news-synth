@@ -3,7 +3,7 @@
 
 **tech-news-synth**
 
-Agente Python automatizado que, a cada 2 horas, coleta notícias de tecnologia de múltiplas fontes públicas (RSS e APIs), agrupa notícias relacionadas por similaridade de título, sintetiza o tema de maior cobertura via Claude Haiku 4.5 em um post único em português, e publica no X na conta **@ByteRelevant**. Volume-alvo: ~12 posts/dia, operando em **tier pay-per-use** da API do X (Free tier antigo foi descontinuado em 2026-02-06 para contas novas).
+Agente Python automatizado que, a cada 3 horas, coleta notícias de tecnologia de múltiplas fontes públicas (RSS e APIs), agrupa notícias relacionadas por similaridade de título, sintetiza o tema de maior cobertura via Claude Haiku 4.5 em um post único em português, e publica no X na conta **@ByteRelevant**. Volume-alvo: ~8 posts/dia, operando em **tier pay-per-use** da API do X (Free tier antigo foi descontinuado em 2026-02-06 para contas novas).
 
 **Core Value:** Transformar ruído de feeds de tecnologia em **um post por ciclo que destaca o tema com mais cobertura e o ângulo único de cada fonte** — sem repetir o mesmo assunto em 48h.
 
@@ -11,7 +11,7 @@ Agente Python automatizado que, a cada 2 horas, coleta notícias de tecnologia d
 
 - **Tech stack:** Python 3.12, scikit-learn (TF-IDF/cosine), feedparser, `anthropic` SDK, tweepy v2, psycopg 3 + SQLAlchemy 2.0 + alembic, Postgres 16, APScheduler, structlog, pydantic-settings, httpx, ruff, pytest
 - **Infra:** Docker Compose (base `python:3.12-slim-bookworm`), execução em VPS Ubuntu, APScheduler em-processo (PID 1) no container app
-- **API X:** tier pay-per-use (posting pago) — meta 12/dia; gate de validação inicial confirma cap e custo real
+- **API X:** tier pay-per-use (posting pago) — meta 8/dia; gate de validação inicial confirma cap e custo real
 - **Limite de post:** 280 chars totais (weighted char count), incluindo URL encurtada t.co (~23 chars) e hashtags
 - **Janela anti-repetição:** 48h em Postgres — **por similaridade cosseno de centroide de cluster**, não hash de string (paraphrase-safe)
 - **Janela de cluster:** 6h de histórico ao montar clusters (configurável)
@@ -33,7 +33,7 @@ Agente Python automatizado que, a cada 2 horas, coleta notícias de tecnologia d
 | **anthropic** (Python SDK) | 0.79.x (≥0.49 minimum) | Claude Haiku 4.5 synthesis in PT-BR | Official SDK. **Use `claude-haiku-4-5` model id.** Claude Haiku 3/3.5 deprecated (Haiku 3 retires 2026-04-19). SDK uses httpx internally for sync + async. HIGH confidence. |
 | **tweepy** | 4.14.0 | X API v2 posting (`client.create_tweet`) via OAuth 1.0a User Context | De-facto Python client for X. `tweepy.Client` (v2) supports OAuth 1.0a User Context required for write endpoints on Free tier. HIGH confidence. |
 | **scikit-learn** | 1.8.x | `TfidfVectorizer` + `cosine_similarity` for title clustering | Project constraint; 1.8.0 is current stable. Deterministic, no external API, CPU-only, fast on <10k docs. HIGH confidence. |
-| **feedparser** | 6.0.11 | RSS/Atom parsing (TechCrunch, Verge, Ars Technica) | Gold standard for 15+ years; handles malformed feeds gracefully. Performance irrelevant at 5-10 feeds / 2h cycle. Active maintenance (kurtmckee fork). |
+| **feedparser** | 6.0.11 | RSS/Atom parsing (TechCrunch, Verge, Ars Technica) | Gold standard for 15+ years; handles malformed feeds gracefully. Performance irrelevant at 5-10 feeds / 3h cycle. Active maintenance (kurtmckee fork). |
 | **httpx** | 0.28.x | HTTP client for Hacker News Firebase API, Reddit JSON, arbitrary sources | Already a transitive dep of `anthropic`. Unified sync+async API, HTTP/2, timeouts/retries first-class. One fewer library than adding `requests`. |
 | **SQLAlchemy** | 2.0.x (≥2.0.40) | ORM / Core for posts, clusters, sources tables | Modern typed API (`Mapped[...]`), async-capable, works with psycopg3. 2.0 is the current line; 2.1 coming but not required. |
 | **psycopg** (psycopg3) | 3.2.x | Postgres driver | Modern successor; same-team as psycopg2; native async; `postgresql+psycopg://` dialect in SQLAlchemy 2.0. Preferred over psycopg2-binary for new projects. |
@@ -41,7 +41,7 @@ Agente Python automatizado que, a cada 2 horas, coleta notícias de tecnologia d
 | **pydantic** | 2.9.x | Config validation (settings from env), source definitions, tweet payload schemas | Industry standard; pydantic-settings handles `.env` + env var loading with typed fields. |
 | **pydantic-settings** | 2.6.x | `.env` loading + typed `Settings` class | First-party pydantic extension; replaces `python-dotenv` for structured config. Still allows `.env` file. |
 | **structlog** | 25.x | Structured JSON logs to stdout + file (Docker volume) | Purpose-built for structured/JSON. Orjson renderer is fast. Integrates with stdlib `logging`. Explicit context binding (source, cluster_id, post_id) beats Loguru's string-first approach for this use case. |
-| **APScheduler** | 3.10.x (stable; avoid 4.x pre-release) | In-process cron scheduler ("every 2h") inside the container | Keeps scheduler + job in one Python process → easy logging, exception handling, shared DB pool. System `cron` inside a container is an anti-pattern (no stdout capture, no shared env, PID 1 issues). APScheduler 4 is still pre-release — stick with 3.10 `BlockingScheduler` + `CronTrigger`. |
+| **APScheduler** | 3.10.x (stable; avoid 4.x pre-release) | In-process cron scheduler ("every 3h") inside the container | Keeps scheduler + job in one Python process → easy logging, exception handling, shared DB pool. System `cron` inside a container is an anti-pattern (no stdout capture, no shared env, PID 1 issues). APScheduler 4 is still pre-release — stick with 3.10 `BlockingScheduler` + `CronTrigger`. |
 ### Supporting Libraries
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
@@ -69,11 +69,11 @@ Agente Python automatizado que, a cada 2 horas, coleta notícias de tecnologia d
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
 | **scikit-learn TF-IDF + cosine** | `sentence-transformers` embeddings + FAISS | If cross-lingual clustering or semantic nuance matters more than speed/simplicity. Not needed here — titles are short English/PT tech headlines; TF-IDF handles them fine and is free. |
-| **scikit-learn TF-IDF + cosine** | OpenAI/Voyage/Cohere embeddings API | Only if you need multilingual semantic clustering. Adds cost, latency, and a second API key. Overkill for 5-10 sources × 2h cycle. |
+| **scikit-learn TF-IDF + cosine** | OpenAI/Voyage/Cohere embeddings API | Only if you need multilingual semantic clustering. Adds cost, latency, and a second API key. Overkill for 5-10 sources × 3h cycle. |
 | **Claude Haiku 4.5** | Claude Sonnet 4.5 / Opus 4.5 | If synthesis quality at 280 chars is insufficient after prompt iteration. Haiku is ~10× cheaper and fast enough; reserve Sonnet only if A/B tests show quality gap. |
 | **Claude Haiku 4.5** | GPT-4.1-mini / Gemini Flash | If you need multi-provider fallback. Single provider is simpler for v1. |
 | **APScheduler (in-process)** | System cron + separate one-shot container | Valid if the scheduler process itself is unreliable or if you want jobs fully decoupled. In-process is simpler for a single-tenant agent. |
-| **APScheduler (in-process)** | Celery beat + worker + Redis | Overkill. You have 12 jobs/day, single-node; Celery adds 2 services and no benefit. |
+| **APScheduler (in-process)** | Celery beat + worker + Redis | Overkill. You have 8 jobs/day, single-node; Celery adds 2 services and no benefit. |
 | **psycopg3** | psycopg2-binary | If a critical lib pins psycopg2 (rare in 2026). SQLAlchemy works with both. |
 | **httpx** | requests | If every call is sync + simple and you want the broadest ecosystem. `anthropic` already pulls httpx, so adding requests just duplicates. |
 | **structlog** | loguru | If DX/ergonomics matter more than strict structured context. Loguru is nicer locally but weaker for production JSON pipelines. |

@@ -243,7 +243,13 @@ def run_synthesis(
     # --- Step 5: official short-thread composition ---
     thread_parts_planned = choose_thread_parts(selected)
     card_probe = probe_source_card(source_url)
-    root_text = compose_root_post(body_text, source_url)
+    root_suffix = "" if thread_parts_planned > 1 else " ".join(hashtags)
+    root_text = compose_root_post(
+        body_text,
+        source_url,
+        include_cta=thread_parts_planned > 1,
+        suffix=root_suffix,
+    )
     assert weighted_len(root_text) <= 280, "root thread part exceeds X budget"
 
     reply_texts: list[str] = []

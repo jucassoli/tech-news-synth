@@ -12,16 +12,28 @@ from tech_news_synth.synth.thread import (
 )
 
 
-def test_choose_thread_parts_prefers_three_when_multiple_articles():
+def test_choose_thread_parts_uses_threads_only_for_multiple_articles():
     one = [SimpleNamespace(id=1)]
     many = [SimpleNamespace(id=1), SimpleNamespace(id=2)]
-    assert choose_thread_parts(one) == 2
-    assert choose_thread_parts(many) == 3
+    assert choose_thread_parts(one) == 1
+    assert choose_thread_parts(many) == 2
 
 
 def test_compose_root_post_includes_cta_and_url():
     text = compose_root_post("Allbirds vendeu a operação de calçados.", "https://example.com/news")
     assert CTA in text
+    assert text.endswith("https://example.com/news")
+
+
+def test_compose_root_post_can_omit_cta_and_include_suffix():
+    text = compose_root_post(
+        "Allbirds vendeu a operação de calçados.",
+        "https://example.com/news",
+        include_cta=False,
+        suffix="#tech",
+    )
+    assert CTA not in text
+    assert "#tech" in text
     assert text.endswith("https://example.com/news")
 
 

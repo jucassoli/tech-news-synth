@@ -16,6 +16,7 @@ def _settings(**overrides) -> Settings:
         "x_consumer_secret": SecretStr("cs"),
         "x_access_token": SecretStr("at"),
         "x_access_token_secret": SecretStr("ats"),
+        "max_posts_per_day": 8,
         "postgres_password": SecretStr("pw"),
     }
     base.update(overrides)
@@ -25,7 +26,7 @@ def _settings(**overrides) -> Settings:
 def test_check_caps_neither_reached(mocker):
     mocker.patch("tech_news_synth.publish.caps.count_posted_today", return_value=5)
     mocker.patch("tech_news_synth.publish.caps.sum_monthly_cost_usd", return_value=1.0)
-    s = _settings()  # defaults: max_posts_per_day=12, max_monthly_cost_usd=30.0
+    s = _settings()  # defaults: max_posts_per_day=8, max_monthly_cost_usd=30.0
     result = check_caps(session=mocker.MagicMock(), settings=s)
     assert isinstance(result, CapCheckResult)
     assert result.daily_count == 5
@@ -36,7 +37,7 @@ def test_check_caps_neither_reached(mocker):
 
 
 def test_check_caps_daily_only(mocker):
-    mocker.patch("tech_news_synth.publish.caps.count_posted_today", return_value=12)
+    mocker.patch("tech_news_synth.publish.caps.count_posted_today", return_value=8)
     mocker.patch("tech_news_synth.publish.caps.sum_monthly_cost_usd", return_value=1.0)
     s = _settings()
     result = check_caps(session=mocker.MagicMock(), settings=s)
@@ -67,7 +68,7 @@ def test_check_caps_both_reached(mocker):
 
 def test_check_caps_boundary_exactly_at_limit(mocker):
     """>= semantics: count == max means reached."""
-    mocker.patch("tech_news_synth.publish.caps.count_posted_today", return_value=12)
+    mocker.patch("tech_news_synth.publish.caps.count_posted_today", return_value=8)
     mocker.patch("tech_news_synth.publish.caps.sum_monthly_cost_usd", return_value=0.0)
     s = _settings()
     result = check_caps(session=mocker.MagicMock(), settings=s)

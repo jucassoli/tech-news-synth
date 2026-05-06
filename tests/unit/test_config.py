@@ -19,7 +19,7 @@ def test_settings_happy_path(monkeypatch_env):
     from tech_news_synth.config import load_settings
 
     s = load_settings()
-    assert s.interval_hours == 2
+    assert s.interval_hours == 3
     assert s.paused is False
     assert s.dry_run is False
     assert s.anthropic_api_key.get_secret_value() == "sk-ant-test"
@@ -145,7 +145,7 @@ def test_model_dump_json_parseable(monkeypatch_env):
 
     s = load_settings()
     payload = json.loads(s.model_dump_json())
-    assert payload["interval_hours"] == 2
+    assert payload["interval_hours"] == 3
     assert "anthropic_api_key" in payload
     # Masked form in JSON
     assert payload["anthropic_api_key"] == "**********"
@@ -275,7 +275,7 @@ def test_publish_settings_defaults(monkeypatch_env):
     from tech_news_synth.config import load_settings
 
     s = load_settings()
-    assert s.max_posts_per_day == 12
+    assert s.max_posts_per_day == 8
     assert s.max_monthly_cost_usd == 30.00
     assert s.publish_stale_pending_minutes == 5
     assert s.x_api_timeout_sec == 30

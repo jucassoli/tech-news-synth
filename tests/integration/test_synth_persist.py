@@ -160,7 +160,7 @@ def test_posts_row_written_with_cost_and_tokens(db_session, mocker):
             .order_by(PostTweet.position.asc())
         ).scalars()
     )
-    assert len(parts) == 3
+    assert len(parts) == 2
     assert parts[0].text == result.text
     assert parts[-1].text.endswith("#Apple")
 

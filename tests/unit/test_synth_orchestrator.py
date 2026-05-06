@@ -146,7 +146,7 @@ def test_run_synthesis_completed_on_first_attempt(mocker):
     assert "https://" in result.text
     assert "Siga a thread" in result.text
     assert result.reply_texts[-1].endswith("#Apple")
-    assert len(result.thread_texts) == 3
+    assert len(result.thread_texts) == 2
     assert result.counts_patch["synth_attempts"] == 1
     assert result.counts_patch["synth_truncated"] is False
     assert result.counts_patch["post_id"] == 999
@@ -189,8 +189,8 @@ def test_run_synthesis_completed_on_second_attempt(mocker):
     )
     assert result.attempts == 2
     assert result.final_method == "completed"
-    assert result.input_tokens == 172
-    assert result.output_tokens == 106
+    assert result.input_tokens == 160
+    assert result.output_tokens == 100
 
 
 def test_run_synthesis_truncated_after_all_attempts(mocker):
@@ -272,7 +272,10 @@ def test_run_synthesis_fallback_path(mocker):
     assert result.hashtags == ["#tech"]
     assert result.source_url == "https://verge.com/f"
     assert result.post_id == 500
-    assert len(result.thread_texts) == 2
+    assert result.reply_texts == []
+    assert "#tech" in result.text
+    assert "Siga a thread" not in result.text
+    assert len(result.thread_texts) == 1
 
 
 def test_run_synthesis_dry_run_still_calls_anthropic(mocker):

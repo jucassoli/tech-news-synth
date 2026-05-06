@@ -2,7 +2,7 @@
 
 RESEARCH A1 note: Reddit's unauthenticated ``.json`` endpoint posture is
 uncertain in 2026. If live traffic returns 403/429 persistently, this fetcher
-will accumulate failures and auto-disable per D-12 within ~40h (20 x 2h
+will accumulate failures and auto-disable per D-12 within ~60h (20 x 3h
 interval). Operators can manually re-enable or wait for Phase 8 OPS-04.
 
 Filters:

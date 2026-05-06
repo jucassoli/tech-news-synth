@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     )
 
     # --- Runtime knobs ---
-    interval_hours: int = Field(default=2, ge=1, le=24)
+    interval_hours: int = Field(default=3, ge=1, le=24)
     paused: bool = False
     dry_run: bool = False
     log_dir: str = "/data/logs"
@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     hashtags_config_path: str = "/app/config/hashtags.yaml"
 
     # --- Phase 7 publish (D-11) ---
-    max_posts_per_day: int = Field(default=12, ge=1, le=1000)
+    max_posts_per_day: int = Field(default=8, ge=1, le=1000)
     max_monthly_cost_usd: float = Field(default=30.00, ge=1.0, le=10000.0)
     publish_stale_pending_minutes: int = Field(default=5, ge=1, le=1440)
     x_api_timeout_sec: int = Field(default=30, ge=5, le=120)

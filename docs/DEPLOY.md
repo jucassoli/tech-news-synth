@@ -147,8 +147,8 @@ Optional tuning (leave defaults unless you have a reason):
 
 | Env var                         | Default | Meaning                                                                  |
 | ------------------------------- | ------- | ------------------------------------------------------------------------ |
-| `INTERVAL_HOURS`                | 2       | Scheduler cadence. Must divide 24 (allowed: 1, 2, 3, 4, 6, 8, 12, 24).   |
-| `MAX_POSTS_PER_DAY`             | 12      | Hard cap before PUBLISH-04 kicks in.                                     |
+| `INTERVAL_HOURS`                | 3       | Scheduler cadence. Must divide 24 (allowed: 1, 2, 3, 4, 6, 8, 12, 24).   |
+| `MAX_POSTS_PER_DAY`             | 8       | Hard cap before PUBLISH-04 kicks in.                                     |
 | `MAX_MONTHLY_COST_USD`          | 30.00   | Hard kill-switch when X+synthesis cost exceeds this in a rolling month.  |
 | `CLUSTER_WINDOW_HOURS`          | 6       | How far back to pull articles when clustering.                           |
 | `ANTI_REPEAT_WINDOW_HOURS`      | 48      | Skip theme if we already posted a similar one within this window.        |
@@ -332,11 +332,11 @@ docker compose exec postgres psql -U app -d tech_news_synth -c "\dt"
 
 ## 7. Soak + Cutover
 
-v1 ships after the 48h DRY_RUN soak (§7.1) passes AND the live cutover (§7.2) produces ≥ 12 clean tweets in 24h. §7.3 is the rollback path if something goes wrong.
+v1 ships after the 48h DRY_RUN soak (§7.1) passes AND the live cutover (§7.2) produces ≥ 8 clean tweets in 24h. §7.3 is the rollback path if something goes wrong.
 
 ### 7.1 48h DRY_RUN Soak
 
-**Purpose:** prove the agent runs for 48h without intervention, producing ≥ 24 cycles (one per 2h ± 30min tolerance), zero unhandled exceptions, ≤ 2 transient failures — Phase 8 D-08 / OPS-06 pass criteria.
+**Purpose:** prove the agent runs for 48h without intervention, producing ≥ 16 cycles (one per 3h ± 30min tolerance), zero unhandled exceptions, ≤ 2 transient failures — Phase 8 D-08 / OPS-06 pass criteria.
 
 Preconditions:
 
@@ -412,7 +412,7 @@ After 48h:
    Expected output: one `## Cutover verification — <ts>` block appended to `.planning/intel/cutover-report.md`, stdout echo of same, **exit 0 on GO**.
 
    Pass criteria (SC-5):
-   - Posts in 24h: ≥ 12
+   - Posts in 24h: ≥ 8
    - Jaccard duplicates (48h window, threshold 0.5): 0
    - Cost 24h: ≤ $0.7224 (2× baseline $0.3612)
 8. Fill the **Operator Sign-Off** table at the top of `.planning/intel/cutover-report.md`.

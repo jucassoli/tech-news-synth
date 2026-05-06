@@ -18,7 +18,7 @@ def monkeypatch_env(monkeypatch, tmp_path):
         "X_ACCESS_TOKEN": "t",
         "X_ACCESS_TOKEN_SECRET": "ts",
         "POSTGRES_PASSWORD": "pw",
-        "INTERVAL_HOURS": "2",
+        "INTERVAL_HOURS": "3",
         "PAUSED": "0",
         "DRY_RUN": "0",
         "LOG_DIR": str(tmp_path / "logs"),

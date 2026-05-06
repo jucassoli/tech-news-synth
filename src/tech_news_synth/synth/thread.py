@@ -22,17 +22,27 @@ CTA = "Siga a thread 🧵👇"
 
 
 def choose_thread_parts(selected_articles: list[Article]) -> int:
-    """Simple editorial rule: single-source fallback gets 2 parts, richer sets get 3."""
-    return 3 if len(selected_articles) > 1 else 2
+    """Keep most stories to one post; use a short thread for multi-source stories."""
+    return 2 if len(selected_articles) > 1 else 1
 
 
-def compose_root_post(body_text: str, source_url: str) -> str:
-    """Build the lead post with CTA + source URL for the X card."""
+def compose_root_post(
+    body_text: str,
+    source_url: str,
+    *,
+    include_cta: bool = True,
+    suffix: str = "",
+) -> str:
+    """Build the lead post with optional CTA/hashtags + source URL for the X card."""
     url_weight = 23
-    overhead = weighted_len(CTA) + url_weight + 4  # blank lines + separator spaces
+    extra_sections = [CTA] if include_cta else []
+    if suffix:
+        extra_sections.append(suffix)
+    overhead = url_weight + sum(weighted_len(section) for section in extra_sections)
+    overhead += 2 * len(extra_sections) + 2  # blank lines between sections and URL
     budget = max(0, 280 - overhead)
     lead = word_boundary_truncate(body_text.strip(), budget).strip()
-    return f"{lead}\n\n{CTA}\n\n{source_url}"
+    return "\n\n".join([lead, *extra_sections, source_url])
 
 
 def compose_reply_post(text: str, *, suffix: str = "") -> str:

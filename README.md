@@ -278,7 +278,7 @@ As funções abaixo são os principais pontos programáticos de disparo, control
 
 | Variável | Default | Descrição |
 | --- | --- | --- |
-| `INTERVAL_HOURS` | `2` | Intervalo do scheduler; deve dividir 24 |
+| `INTERVAL_HOURS` | `3` | Intervalo do scheduler; deve dividir 24 |
 | `PAUSED` | `0` | Pausa execução global |
 | `DRY_RUN` | `0` | Roda sem publicar no X |
 | `SOURCES_CONFIG_PATH` | `/app/config/sources.yaml` | Caminho do YAML de fontes |
@@ -287,7 +287,7 @@ As funções abaixo são os principais pontos programáticos de disparo, control
 | `CLUSTER_WINDOW_HOURS` | `6` | Janela usada na clusterização |
 | `ANTI_REPEAT_WINDOW_HOURS` | `48` | Janela de comparação com posts recentes |
 | `SYNTHESIS_CHAR_BUDGET` | `225` | Orçamento de caracteres para corpo do texto |
-| `MAX_POSTS_PER_DAY` | `12` | Limite diário de posts |
+| `MAX_POSTS_PER_DAY` | `8` | Limite diário de posts |
 | `MAX_MONTHLY_COST_USD` | `30.00` | Limite mensal de custo |
 | `PUBLISH_STALE_PENDING_MINUTES` | `5` | Idade para considerar `pending` órfão |
 | `X_API_TIMEOUT_SEC` | `30` | Timeout do cliente do X |
